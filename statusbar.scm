@@ -224,8 +224,7 @@
          (mem-available (get mem-info 'mem-available))
          (mem-used (- mem-total mem-available)))
     (apply format #f
-           (if (> (/ mem-available mem-total)
-                  0.9)
+           (if (> (/ mem-used mem-total) 0.9)
                "<span foreground=\"#da1000\">~4d</span>mb"
                "~4dmb")
            (list (ash mem-used -20)))))
