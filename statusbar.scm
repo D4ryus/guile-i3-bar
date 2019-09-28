@@ -225,7 +225,7 @@
          (mem-used (- mem-total mem-available)))
     (apply format #f
            (if (> (/ mem-used mem-total) 0.9)
-               "<span foreground=\"#da1000\">~4d</span>mb"
+               "<span foreground=\"#DA1000\">~4d</span>mb"
                "~4dmb")
            (list (ash mem-used -20)))))
 
@@ -326,7 +326,7 @@
 (define (format-cpu cpu)
   (apply format #f
          (if (> cpu 95)
-             "<span foreground=\"#da1000\">~a</span>"
+             "<span foreground=\"#DA1000\">~a</span>"
              "~a")
          (list (cond
                 ((> cpu 90) "█")
@@ -419,19 +419,19 @@
                          (apply fmt-triple (ash 1 23) net)
                          #:name "net"
                          #:instance (car net)
-                         #:color "#C26DE8"))
+                         #:color "#D66563"))
              (net-used!))
         (map (lambda (disk)
                (i3-block port
                          (apply fmt-triple (ash 1 27) disk)
                          #:name "disk"
                          #:instance (car disk)
-                         #:color "#7885FF"))
+                         #:color "#9895FA"))
              (disk-used!))
         (i3-block port
                   (format-memory (read-proc-meminfo!))
                   #:name "mem"
-                  #:color "#AAAA00")
+                  #:color "#E8D900")
         (i3-block port
                   (apply string-append (map format-cpu (cdr (cpus-used!))))
                   #:name "cpu"
@@ -440,7 +440,7 @@
                   (strftime "%a, %e.%m.%Y"
                             (localtime (current-time)))
                   #:name "date"
-                  #:color "#AFFFFF")
+                  #:color "#2D97FA")
         (i3-block port
                   (strftime "%H:%M"
                             (localtime (current-time)))
