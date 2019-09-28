@@ -455,16 +455,11 @@
 (define (main-loop)
   (sleep 1)
   (when running
-    (catch #t
-      (lambda ()
-        (update!))
-      (lambda (key . args)
-        (format stdout "Error ~a: ~a~%"
-                key args)
-        (sleep 9)))
-    (main-loop)))
+    (update!))
+  (main-loop))
 
-(define* (init #:key (version 1) (stop-signal 10) (cont-signal 12) (click-events #f) (spawn-server? #f))
+(define* (init #:key (version 1) (stop-signal SIGUSR1) (cont-signal SIGCONT)
+               (click-events #f) (spawn-server? #f))
   (when spawn-server?
     (let ((path "/tmp/guile-statusbar"))
       (when (file-exists? path)
@@ -476,6 +471,14 @@
                    (cons "click_events" click-events))
              stdout)
   (format stdout "~%[[]~%")
-  (main-loop))
+  (main-loop)
+  (format stdout "]~%"))
 
+(define (signal-handler signal)
+  (cond
+    ((= signal SIGUSR1) (set! running #f))
+    ((= signal SIGCONT) (set! running #t))))
+
+(sigaction SIGUSR1 signal-handler SA_NOCLDSTOP)
+(sigaction SIGCONT signal-handler SA_NOCLDSTOP)
 (init #:spawn-server? #t)
