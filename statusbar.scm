@@ -102,12 +102,12 @@
                                      (string-prefix? (symbol->string (caar result))
                                                      (match:substring match 1)))
                                 (begin
-                                  (assv-set! (cdar result) 'partitions
-                                             (append (get (cdar result) 'partitions)
-                                                     (list
-                                                      (map cons (cons 'nr mapping)
-                                                           (map string->number
-                                                                (cdr (match-substrings match)))))))
+                                  (assoc-set! (cdar result) 'partitions
+                                              (append (get (cdar result) 'partitions)
+                                                      (list
+                                                       (map cons (cons 'nr mapping)
+                                                            (map string->number
+                                                                 (cdr (match-substrings match)))))))
                                   (loop (get-line port)
                                         result))
                                 (loop (get-line port)
@@ -253,10 +253,14 @@
    (#t (error "expected x and y to be a number:" x y))))
 
 (define (get alist . keys)
-  (let ((cur (cdr (assv (car keys) alist))))
-    (if (null? (cdr keys))
-        cur
-        (apply get cur (cdr keys)))))
+  (let ((cur (assoc (car keys) alist)))
+    (if (not cur)
+        #f
+        (begin
+          (set! cur (cdr cur))
+          (if (null? (cdr keys))
+              cur
+              (apply get cur (cdr keys)))))))
 
 (define (accumulate-alist op init alist keys)
   (accumulate (lambda (acc x)
