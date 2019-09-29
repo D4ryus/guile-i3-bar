@@ -561,6 +561,42 @@
                "~4dmb")
            (list (ash mem-used -20)))))
 
+;; --- battery
+
+(define-class <bat> (<obj>)
+  (path #:init-value "/sys/class/power_supply/BAT0"
+        #:init-keyword #:path)
+  percent
+  status)
+
+(define-method (fetch (obj <bat>))
+  (let* ((path (slot-ref obj 'path))
+         (status (string-append path "/status"))
+         (full (string-append path "/energy_full"))
+         (now (string-append path "/energy_now")))
+    (map (lambda (file convert)
+           (call-with-input-file file
+             (lambda (port)
+               (convert (get-line port)))))
+         (list status full now)
+         (list identity string->number string->number))))
+
+(define-method (adjust (obj <bat>) (diff <number>))
+  (apply (lambda (status full now)
+           (slot-set! obj 'status status)
+           (slot-set! obj 'percent
+                      (round (* 100 (/ now (if (= 0 full) 1 full))))))
+         (slot-ref obj 'data)))
+
+(define-method (fmt (obj <bat>))
+  (if (clicked? "bat" #f)
+      ;; XXX red when low
+      (format #f "~a ~a%"
+              (slot-ref obj 'status)
+              (slot-ref obj 'percent))
+      (format #f "~a%"
+              (slot-ref obj 'percent))))
+
 ;; --- time
 
 (define-class <time> (<obj>))
@@ -684,6 +720,7 @@
         (make <disk> #:name "disk" #:color "#9895FA")
         (make <mem>  #:name "mem"  #:color "#E8D900")
         (make <cpu>  #:name "cpu"  #:color "#4AFFCD")
+        (make <bat>  #:name "bat"  #:color "#FFAAFF")
         (make <time> #:name "time" #:color "#FFFFFF")))
 
 (sigaction SIGUSR1 signal-handler)
