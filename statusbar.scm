@@ -10,6 +10,8 @@
 
 (define stdout (current-output-port))
 
+(define main-loop-error #f)
+
 (define (match-substrings match)
   (let loop ((nr 1)
              (substrings (list)))
@@ -475,7 +477,13 @@
                    (cons "click_events" click-events))
              stdout)
   (format stdout "~%[[]~%")
-  (main-loop)
+  (catch #t
+    (lambda () (main-loop))
+    (lambda (key . parameters)
+      (set! main-loop-error (cons key parameters))
+      ;; Sleep so that one can attach via geiser and check what
+      ;; error was thrown
+      (sleep 999)))
   (format stdout "]~%"))
 
 (define (signal-handler signal)
