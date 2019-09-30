@@ -2,7 +2,6 @@
              (ice-9 threads)
              (ice-9 textual-ports)
              (ice-9 regex)
-             (ice-9 threads)
              (ice-9 format)
              (ice-9 pretty-print)
              (system repl server)
