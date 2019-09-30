@@ -1,6 +1,5 @@
 (use-modules (srfi srfi-1)
              (ice-9 threads)
-             (ice-9 textual-ports)
              (ice-9 regex)
              (ice-9 format)
              (ice-9 pretty-print)
@@ -181,16 +180,16 @@
       (call-with-input-file "/proc/net/dev"
         (lambda (port)
           ;; first two lines are header
-          (get-line port)
-          (get-line port)
-          (let loop ((line (get-line port))
+          (read-line port)
+          (read-line port)
+          (let loop ((line (read-line port))
                      (result (list)))
             (if (eof-object? line)
                 (reverse result)
                 (let ((match (regexp-exec device-rgx line)))
                   (if (not match)
                       (error "Line does not match regex:" line)
-                      (loop (get-line port)
+                      (loop (read-line port)
                             (cons (cons (string->lispified-symbol
                                          (match:substring match 1))
                                         (map cons mapping
@@ -213,12 +212,12 @@
     (lambda ()
       (call-with-input-file "/proc/diskstats"
         (lambda (port)
-          (let loop ((line (get-line port))
+          (let loop ((line (read-line port))
                      (result (list)))
             (if (eof-object? line)
                 (reverse result)
                 (if (regexp-exec unused-disk-rgx line)
-                    (loop (get-line port) result)
+                    (loop (read-line port) result)
                     (let ((match (regexp-exec disk-rgx line)))
                       (if (not match)
                           (error "No matching regex found for" line)
@@ -234,9 +233,9 @@
                                                        (map cons (cons 'nr mapping)
                                                             (map string->number
                                                                  (cdr (match-substrings match)))))))
-                                  (loop (get-line port)
+                                  (loop (read-line port)
                                         result))
-                                (loop (get-line port)
+                                (loop (read-line port)
                                       (cons (cons (string->lispified-symbol (match:substring match 1))
                                                   (list (cons 'total
                                                               (map cons
@@ -266,7 +265,7 @@
     (lambda ()
       (call-with-input-file "/proc/stat"
         (lambda (port)
-          (let loop ((line (get-line port))
+          (let loop ((line (read-line port))
                      (result (list))
                      (cores (list)))
             (if (eof-object? line)
@@ -281,7 +280,7 @@
                             (loop-rgx (cdr regex))
                             (case name
                               ((cpu softirq)
-                               (loop (get-line port)
+                               (loop (read-line port)
                                      (cons (cons name
                                                  (map cons
                                                       (if (equal? name 'softirq)
@@ -292,7 +291,7 @@
                                            result)
                                      cores))
                               ((cores)
-                               (loop (get-line port)
+                               (loop (read-line port)
                                      result
                                      (cons (map cons
                                                 (cons 'nr mapping)
@@ -300,7 +299,7 @@
                                                      (match-substrings match)))
                                            cores)))
                               ((intr)
-                               (loop (get-line port)
+                               (loop (read-line port)
                                      (cons (cons name
                                                  (map string->number
                                                       (string-split (match:substring match 1)
@@ -308,7 +307,7 @@
                                            result)
                                      cores))
                               (else
-                               (loop (get-line port)
+                               (loop (read-line port)
                                      (cons (cons name
                                                  (string->number
                                                   (match:substring match 1)))
@@ -321,7 +320,7 @@
     (lambda ()
       (call-with-input-file "/proc/meminfo"
         (lambda (port)
-          (let loop ((line (get-line port))
+          (let loop ((line (read-line port))
                      (result (list)))
             (if (eof-object? line)
                 (reverse result)
@@ -336,7 +335,7 @@
                      ((string=? unit "kB")
                       (set! count (* count 1000)))
                      (#t (error "Unknown unit" unit))))
-                  (loop (get-line port)
+                  (loop (read-line port)
                         (cons (cons (string->lispified-symbol (match:substring m 1))
                                     count)
                               result))))))))))
@@ -576,7 +575,7 @@
     (map (lambda (file convert)
            (call-with-input-file file
              (lambda (port)
-               (convert (get-line port)))))
+               (convert (read-line port)))))
          (list status full now)
          (list identity string->number string->number))))
 
