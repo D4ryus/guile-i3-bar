@@ -62,17 +62,6 @@
                   (op init (car sequence))
                   (cdr sequence))))
 
-
-(define (format-memory mem-info)
-  (let* ((mem-total (get mem-info 'mem-total))
-         (mem-available (get mem-info 'mem-available))
-         (mem-used (- mem-total mem-available)))
-    (apply format #f
-           (if (> (/ mem-used mem-total) 0.9)
-               "<span foreground=\"#DA1000\">~4d</span>mb"
-               "~4dmb")
-           (list (ash mem-used -20)))))
-
 (define (difference x y)
   (cond
    ((and (null? x) (null? y))
