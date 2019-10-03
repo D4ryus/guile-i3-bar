@@ -1,4 +1,5 @@
 (use-modules (ice-9 format)
+             (ice-9 popen)
              (ice-9 pretty-print)
              (ice-9 rdelim)
              (ice-9 receive)
@@ -314,6 +315,40 @@
                                     count)
                               result))))))))))
 
+;; --- spotify
+
+(define (read-spotify!)
+  (let* ((pipe (open-input-pipe
+                (string-join (list "qdbus org.mpris.MediaPlayer2.spotify"
+                                   "/org/mpris/MediaPlayer2"
+                                   "org.mpris.MediaPlayer2.Player.Metadata"))))
+         (rgx `((artist album title)
+                ;; We are looking for lines matching:
+                ;; xesam:album: Some album name
+                ;; xesam:artist: Some artist
+                ;; xesam:title: Some great Title
+                (,(make-regexp "^xesam:artist: (.*)$")
+                 ,(make-regexp "^xesam:album: (.*)$")
+                 ,(make-regexp "^xesam:title: (.*)$"))))
+         (result (let loop ((line (read-line pipe))
+                            (res (list)))
+                   (if (eof-object? line)
+                       (reverse res)
+                       (let ((match #f))
+                         (apply map
+                                (lambda (type rgx)
+                                  (let ((m (regexp-exec rgx line)))
+                                    (when m
+                                      (set! match
+                                        (cons type (match:substring m 1))))))
+                                rgx)
+                         (loop (read-line pipe)
+                               (if match
+                                   (cons match res)
+                                   res)))))))
+    (close-pipe pipe)
+    result))
+
 ;; --- click event handling
 
 (define (make-click-event name instance)
@@ -440,6 +475,40 @@
 
 (define-method (fmt (obj <instance>) (clicked? <boolean>))
   (error "Implement fmt for" obj))
+
+;; -- spotify
+
+(define-class <spotify> (<obj>)
+  (running? #:init-value #f)
+  artist
+  album
+  title)
+
+(define-method (fetch (obj <spotify>))
+  (read-spotify!))
+
+(define-method (adjust (obj <spotify>) (diff <number>))
+  (let ((data (slot-ref obj 'data)))
+    (if (null? data)
+        (slot-set! obj 'running? #f)
+        (begin
+          (slot-set! obj 'running? #t)
+          (slot-set! obj 'artist (get data 'artist))
+          (slot-set! obj 'album (get data 'album))
+          (slot-set! obj 'title (get data 'title))))
+    (list)))
+
+(define-method (fmt (obj <spotify>) (clicked? <boolean>))
+  (if (not (slot-ref obj 'running?))
+      #f
+      (i3-block (if clicked?
+                    (format #f "~a - ~a - ~a"
+                            (slot-ref obj 'artist)
+                            (slot-ref obj 'album)
+                            (slot-ref obj 'title))
+                    (format #f "~a" (slot-ref obj 'title)))
+                #:name (slot-ref obj 'name)
+                #:color (slot-ref obj 'color))))
 
 ;; --- net
 
@@ -783,12 +852,13 @@
     ((= signal SIGUSR2) (print!))))
 
 (define objs
-  (list (make <net>   #:name 'net   #:color "#D66563")
-        (make <disks> #:name 'disks #:color "#9895FA")
-        (make <mem>   #:name 'mem   #:color "#E8D900")
-        (make <cpu>   #:name 'cpu   #:color "#4AFFCD")
-        (make <bat>   #:name 'bat   #:color "#FFAAFF")
-        (make <time>  #:name 'time  #:color "#FFFFFF")))
+  (list (make <spotify> #:name 'spotify #:color "#6AE368")
+        (make <net>     #:name 'net     #:color "#D66563")
+        (make <disks>   #:name 'disks   #:color "#9895FA")
+        (make <mem>     #:name 'mem     #:color "#E8D900")
+        (make <cpu>     #:name 'cpu     #:color "#4AFFCD")
+        (make <bat>     #:name 'bat     #:color "#FFAAFF")
+        (make <time>    #:name 'time    #:color "#FFFFFF")))
 
 (sigaction SIGUSR1 signal-handler)
 (sigaction SIGCONT signal-handler)
