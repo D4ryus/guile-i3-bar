@@ -485,7 +485,7 @@
   (let* ((cache (slot-ref obj 'old-data))
          (new (slot-ref obj 'data))
          (data (difference new cache)))
-    (let loop ((disks data )
+    (let loop ((disks data)
                (result (list)))
       (if (null? disks)
           (slot-set! obj 'used (reverse result))
@@ -529,7 +529,7 @@
                             (total-cpu-time (accumulate-alist + 0 cpu-stats all))
                             (idle-cpu-time (accumulate-alist + 0 cpu-stats idle)))
                        (floor (* 100 (/ (- total-cpu-time idle-cpu-time)
-                                        total-cpu-time))))                   ))
+                                        total-cpu-time))))))
         (data (difference (slot-ref obj 'data) (slot-ref obj 'old-data))))
     (slot-set! obj 'used
                (append (list (cpu-usage (get data 'cpu)))
