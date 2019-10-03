@@ -349,6 +349,12 @@
     (set! instance (string->lispified-symbol instance)))
   (cons name instance))
 
+(define (click-event-name click-event)
+  (car click-event))
+
+(define (click-event-instance click-event)
+  (cdr click-event))
+
 (define* (read-click-event #:optional (port stdin))
   (let ((event (json-string->scm (read-line port))))
     (make-click-event (get event "name")
@@ -359,8 +365,14 @@
 
 (define clicked (list))
 
-(define* (clicked? name instance #:optional (list clicked))
-  (member (make-click-event name instance) list))
+(define* (clicked? name #:optional (instance #f) (list clicked))
+  (if (null? list)
+      #f
+      (if (and (equal? name (click-event-name (car list)))
+               (or (not instance)
+                   (equal? instance (click-event-instance (car list)))))
+          #t
+          (clicked? name instance (cdr list)))))
 
 (define (add-click-event click-event)
   (set! clicked (append (list click-event)
