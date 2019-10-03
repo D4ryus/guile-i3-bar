@@ -365,14 +365,21 @@
 
 (define clicked (list))
 
-(define* (clicked? name #:optional (instance #f) (list clicked))
-  (if (null? list)
-      #f
-      (if (and (equal? name (click-event-name (car list)))
-               (or (not instance)
-                   (equal? instance (click-event-instance (car list)))))
-          #t
-          (clicked? name instance (cdr list)))))
+(define-method (clicked? (name <symbol>) instance)
+  (unless (or (is-a? instance <boolean>)
+              (is-a? instance <symbol>))
+    (error "Instance neither boolean nor symbol" instance))
+  (let loop ((list clicked))
+    (if (null? list)
+        #f
+        (if (and (equal? name (click-event-name (car list)))
+                 (or (not instance)
+                     (equal? instance (click-event-instance (car list)))))
+            #t
+            (loop (cdr list))))))
+
+(define-method (clicked? (name <symbol>))
+  (clicked? name #f))
 
 (define (add-click-event click-event)
   (set! clicked (append (list click-event)
@@ -428,6 +435,9 @@
 (define-generic adjust)
 (define-generic fmt)
 
+(define-method (clicked? (obj <obj>))
+  (clicked? (slot-ref obj 'name) #f))
+
 (define-method (update (obj <obj>))
   (slot-set! obj 'old-data (slot-ref obj 'data))
   (slot-set! obj 'data (fetch obj))
@@ -444,7 +454,7 @@
   (error "Implement fmt for" obj))
 
 (define-method (fmt-i3-obj (obj <obj>))
-  (i3-block (fmt obj (clicked? (slot-ref obj 'name)))
+  (i3-block (fmt obj (clicked? obj))
             #:name (slot-ref obj 'name)
             #:color (slot-ref obj 'color)))
 
