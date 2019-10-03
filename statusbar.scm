@@ -674,14 +674,6 @@
 
 ;; ---
 
-(define (format-data objects)
-  (string-join (map (lambda (obj)
-                      (format-data obj))
-                    objects)
-               ","))
-
-;; ---
-
 (define* (i3-block full-text #:key short-text color background
                    border (border-top 0) (border-right 0) (border-bottom 2) (border-left 0)
                    min-width align urgent? name instance
