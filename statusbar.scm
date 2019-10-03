@@ -139,7 +139,6 @@
             ((> percent  0) (list "#00FF00" "▁"))
             (else           (list "#FFFFFF" "▁"))))))
 
-
 ;; --- proc
 
 (define read-proc-net-dev!
