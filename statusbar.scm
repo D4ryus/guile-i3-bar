@@ -440,11 +440,11 @@
 (define-method (adjust (obj <obj>) (diff <number>))
   (error "Implement adjust for" obj))
 
-(define-method (fmt (obj <obj>))
+(define-method (fmt (obj <obj>) (clicked? <boolean>))
   (error "Implement fmt for" obj))
 
 (define-method (fmt-i3-obj (obj <obj>))
-  (i3-block (fmt obj)
+  (i3-block (fmt obj (clicked? (slot-ref obj 'name)))
             #:name (slot-ref obj 'name)
             #:color (slot-ref obj 'color)))
 
@@ -547,7 +547,7 @@
                (append (list (cpu-usage (get data 'cpu)))
                        (map cpu-usage (get data 'cores))))))
 
-(define-method (fmt (obj <cpu>))
+(define-method (fmt (obj <cpu>) (clicked? <boolean>))
   (apply string-append
          (map format-cpu (cdr (slot-ref obj 'used)))))
 
@@ -562,7 +562,7 @@
 (define-method (adjust (obj <mem>) (diff <number>))
   (slot-set! obj 'used (slot-ref obj 'data)))
 
-(define-method (fmt (obj <mem>))
+(define-method (fmt (obj <mem>) (clicked? <boolean>))
   (let* ((mem-info (slot-ref obj 'used))
          (mem-total (get mem-info 'mem-total))
          (mem-available (get mem-info 'mem-available))
@@ -600,8 +600,8 @@
                       (round (* 100 (/ now (if (= 0 full) 1 full))))))
          (slot-ref obj 'data)))
 
-(define-method (fmt (obj <bat>))
-  (if (clicked? "bat" #f)
+(define-method (fmt (obj <bat>) (clicked? <boolean>))
+  (if clicked?
       ;; XXX red when low
       (format #f "~a ~a%"
               (slot-ref obj 'status)
@@ -619,8 +619,8 @@
 (define-method (adjust (obj <time>) (diff <number>))
   #f)
 
-(define-method (fmt (obj <time>))
-  (strftime (if (clicked? "time" #f)
+(define-method (fmt (obj <time>) (clicked? <boolean>))
+  (strftime (if clicked?
                 "%a, %e.%m.%Y %H:%M"
                 "%H:%M")
             (localtime (slot-ref obj 'data))))
