@@ -618,6 +618,7 @@
 ;; --- battery
 
 (define-class <bat> (<obj>)
+  (exists? #:init-value #f)
   (path #:init-value "/sys/class/power_supply/BAT0"
         #:init-keyword #:path)
   percent
@@ -628,31 +629,40 @@
          (status (string-append path "/status"))
          (full (string-append path "/energy_full"))
          (now (string-append path "/energy_now")))
-    (map (lambda (file convert)
-           (call-with-input-file file
-             (lambda (port)
-               (convert (read-line port)))))
-         (list status full now)
-         (list identity string->number string->number))))
+    (if (any (compose not file-exists?)
+             (list status full now))
+        #f
+        (map (lambda (file convert)
+               (call-with-input-file file
+                 (lambda (port)
+                   (convert (read-line port)))))
+             (list status full now)
+             (list identity string->number string->number)))))
 
 (define-method (adjust (obj <bat>) (diff <number>))
-  (apply (lambda (status full now)
-           (slot-set! obj 'status status)
-           (slot-set! obj 'percent
-                      (round (* 100 (/ now (if (= 0 full) 1 full))))))
-         (slot-ref obj 'data))
-  (list))
+  (let ((data (slot-ref obj 'data)))
+    (if (not data)
+        (slot-set! obj 'exists? #f)
+        (apply (lambda (status full now)
+                 (slot-set! obj 'exists? #t)
+                 (slot-set! obj 'status status)
+                 (slot-set! obj 'percent
+                            (round (* 100 (/ now (if (= 0 full) 1 full))))))
+               data))
+    (list)))
 
 (define-method (fmt (obj <bat>) (clicked? <boolean>))
-  (i3-block (if clicked?
-                ;; XXX red when low
-                (format #f "~a ~a%"
-                        (slot-ref obj 'status)
-                        (slot-ref obj 'percent))
-                (format #f "~a%"
-                        (slot-ref obj 'percent)))
-            #:name (slot-ref obj 'name)
-            #:color (slot-ref obj 'color)))
+  (if (not (slot-ref obj 'exists?))
+      #f
+      (i3-block (if clicked?
+                    ;; XXX red when low
+                    (format #f "~a ~a%"
+                            (slot-ref obj 'status)
+                            (slot-ref obj 'percent))
+                    (format #f "~a%"
+                            (slot-ref obj 'percent)))
+                #:name (slot-ref obj 'name)
+                #:color (slot-ref obj 'color))))
 
 ;; --- time
 
@@ -717,10 +727,12 @@
   (with-output-to-port port
     (lambda ()
       (format port ",[")
-      (format port "~a" (string-join (map (lambda (obj)
-                                            (fmt obj (clicked? obj)))
-                                          objs)
-                                     ","))
+      (format port "~a" (string-join
+                         (delete #f
+                                 (map (lambda (obj)
+                                        (fmt obj (clicked? obj)))
+                                      objs))
+                         ","))
       (format port "]~%")
       (force-output port))))
 
