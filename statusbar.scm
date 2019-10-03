@@ -716,12 +716,12 @@
     ((= signal SIGUSR2) (print!))))
 
 (define objs
-  (list (make <net>  #:name "net"  #:color "#D66563")
-        (make <disk> #:name "disk" #:color "#9895FA")
-        (make <mem>  #:name "mem"  #:color "#E8D900")
-        (make <cpu>  #:name "cpu"  #:color "#4AFFCD")
-        (make <bat>  #:name "bat"  #:color "#FFAAFF")
-        (make <time> #:name "time" #:color "#FFFFFF")))
+  (list (make <net>  #:name 'net  #:color "#D66563")
+        (make <disk> #:name 'disk #:color "#9895FA")
+        (make <mem>  #:name 'mem  #:color "#E8D900")
+        (make <cpu>  #:name 'cpu  #:color "#4AFFCD")
+        (make <bat>  #:name 'bat  #:color "#FFAAFF")
+        (make <time> #:name 'time #:color "#FFFFFF")))
 
 (sigaction SIGUSR1 signal-handler)
 (sigaction SIGCONT signal-handler)
