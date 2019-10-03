@@ -319,7 +319,8 @@
 
 (define (read-spotify!)
   (let* ((pipe (open-input-pipe
-                (string-join (list "qdbus org.mpris.MediaPlayer2.spotify"
+                (string-join (list "qdbus"
+                                   "org.mpris.MediaPlayer2.spotify"
                                    "/org/mpris/MediaPlayer2"
                                    "org.mpris.MediaPlayer2.Player.Metadata"))))
          (rgx `((artist album title)
@@ -508,7 +509,8 @@
                             (slot-ref obj 'title))
                     (format #f "~a" (slot-ref obj 'title)))
                 #:name (slot-ref obj 'name)
-                #:color (slot-ref obj 'color))))
+                #:color (slot-ref obj 'color)
+                #:markup #f)))
 
 ;; --- net
 
