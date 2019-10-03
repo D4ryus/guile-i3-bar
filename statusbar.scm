@@ -3,6 +3,7 @@
              (ice-9 rdelim)
              (ice-9 regex)
              (ice-9 threads)
+             (ice-9 receive)
              (json)
              (oop goops)
              (oop goops describe)
@@ -112,21 +113,6 @@
                ((> size mb) (format #f "~4dmb" (ash size -20)))
                ((> size kb) (format #f "~4dkb" (ash size -10)))
                (#t          (format #f "~4db " size)))))))
-
-(define (format-cpu cpu)
-  (apply format #f
-         (if (> cpu 95)
-             "<span foreground=\"#DA1000\">~a</span>"
-             "~a")
-         (list (cond
-                ((> cpu 90) "█")
-                ((> cpu 80) "▇")
-                ((> cpu 70) "▆")
-                ((> cpu 60) "▅")
-                ((> cpu 50) "▄")
-                ((> cpu 40) "▃")
-                ((> cpu 30) "▂")
-                (else "▁")))))
 
 (define (string->color-hash s)
   (let ((hash (string-hash s)))
@@ -390,17 +376,6 @@
   (raise SIGUSR2)
   (process-click-events port))
 
-;; --- XXX
-
-(define (fmt-triple max name instance r w)
-  (let ((clicked (clicked? name instance)))
-    (format #f "~a ~a~a~a~a"
-            instance
-            (if clicked (format-size r) "")
-            (format-bar r max)
-            (format-bar w max)
-            (if clicked (format-size w) ""))))
-
 ;; --- classes
 
 (define (current-tick)
@@ -418,7 +393,8 @@
   (name #:init-form (error "Name required")
         #:init-keyword #:name)
   (color #:init-form (error "Color required")
-         #:init-keyword #:color))
+         #:init-keyword #:color)
+  (instances #:init-value (list)))
 
 (define-generic fetch)
 (define-generic adjust)
@@ -439,18 +415,41 @@
 (define-method (adjust (obj <obj>) (diff <number>))
   (error "Implement adjust for" obj))
 
-(define-method (fmt (obj <obj>) (clicked? <boolean>))
-  (error "Implement fmt for" obj))
+(define-method (fmt (obj <obj>) (clicked <boolean>))
+  (string-join
+   (map (lambda (instance)
+          (receive (fmt . args)
+              (fmt instance (clicked? instance))
+            (apply i3-block fmt
+                   (append
+                    (list #:name (slot-ref obj 'name)
+                          #:color (slot-ref obj 'color)
+                          #:instance (slot-ref instance 'id))
+                    args))))
+        (slot-ref obj 'instances))
+   ","))
 
-(define-method (fmt-i3-obj (obj <obj>))
-  (i3-block (fmt obj (clicked? obj))
-            #:name (slot-ref obj 'name)
-            #:color (slot-ref obj 'color)))
+(define-class <instance> ()
+  (obj #:init-form (error "<obj> required")
+       #:init-keyword #:obj)
+  (id #:init-form (error "Id required")
+      #:init-keyword #:id))
+
+(define-method (clicked? (obj <instance>))
+  (clicked? (slot-ref (slot-ref obj 'obj) 'name)
+            (slot-ref obj 'id)))
+
+(define-method (fmt (obj <instance>) (clicked? <boolean>))
+  (error "Implement fmt for" obj))
 
 ;; --- net
 
 (define-class <net> (<obj>)
   used)
+
+(define-class <interface> (<instance>)
+  (received #:init-keyword #:received)
+  (transmitted #:init-keyword #:transmitted))
 
 (define-method (fetch (obj <net>))
   (read-proc-net-dev!))
@@ -462,73 +461,85 @@
     (let loop ((devices data)
                (result (list)))
       (if (null? devices)
-          (slot-set! obj 'used (reverse result))
+          (reverse result)
           (loop (cdr devices)
                 (let ((device (car devices)))
-                  (cons (list (car device)
-                              (round (/ (get (cdr device) 'received-bytes) diff))
-                              (round (/ (get (cdr device) 'transmitted-bytes) diff)))
+                  (cons (make <interface>
+                          #:obj obj
+                          #:id (car device)
+                          #:received (round
+                                      (/ (get (cdr device) 'received-bytes)
+                                         diff))
+                          #:transmitted (round
+                                         (/ (get (cdr device) 'transmitted-bytes)
+                                            diff)))
                         result)))))))
 
-(define-method (fmt-i3-obj (obj <net>))
-  (string-join (map (lambda (net)
-                      (i3-block (apply fmt-triple (ash 1 23) (slot-ref obj 'name) net)
-                                #:name (slot-ref obj 'name)
-                                #:instance (car net)
-                                #:color (slot-ref obj 'color)
-                                #:border (if (clicked? 'net (car net)) "#777777" #f)
-                                #:border-top 0
-                                #:border-left 0
-                                #:border-right 0
-                                #:border-bottom 2))
-                    (slot-ref obj 'used))
-               ","))
+(define-method (fmt (obj <interface>) (clicked? <boolean>))
+  (let ((max (ash 1 23))
+        (rec (slot-ref obj 'received))
+        (trans (slot-ref obj 'transmitted)))
+    (values
+     (format #f "~a ~a~a~a~a"
+             (slot-ref obj 'id)
+             (if clicked? (format-size rec) "")
+             (format-bar rec max)
+             (format-bar trans max)
+             (if clicked? (format-size trans) ""))
+     #:border (if clicked? "#777777" #f))))
 
 ;; --- disk
 
-(define-class <disk> (<obj>)
-  used)
+(define-class <disks> (<obj>))
 
-(define-method (fetch (obj <disk>))
+(define-class <disk> (<instance>)
+  (read #:init-keyword #:read)
+  (written #:init-keyword #:written))
+
+(define-method (fetch (obj <disks>))
   (read-proc-diskstats!))
 
-(define-method (adjust (obj <disk>) (diff <number>))
+(define-method (adjust (obj <disks>) (diff <number>))
   (let* ((cache (slot-ref obj 'old-data))
          (new (slot-ref obj 'data))
          (data (difference new cache)))
     (let loop ((disks data)
                (result (list)))
       (if (null? disks)
-          (slot-set! obj 'used (reverse result))
+          (reverse result)
           (loop (cdr disks)
                 (let* ((disk (car disks))
-                       (disk-name (car disk))
-                       (disk-total (get (cdr disk) 'total))
-                       (read-bytes (round (/ (* 512 (get disk-total 'sectors-read))
-                                             diff)))
-                       (written-bytes (round (/ (* 512 (get disk-total 'sectors-written))
-                                                diff))))
-                  (cons (list disk-name read-bytes written-bytes)
+                       (disk-total (get (cdr disk) 'total)))
+                  (cons (make <disk>
+                          #:obj obj
+                          #:id (car disk)
+                          #:read (round (/ (* 512 (get disk-total 'sectors-read))
+                                           diff))
+                          #:written (round (/ (* 512 (get disk-total 'sectors-written))
+                                              diff)))
                         result)))))))
 
-(define-method (fmt-i3-obj (obj <disk>))
-  (string-join (map (lambda (disk)
-                      (i3-block (apply fmt-triple (ash 1 27) (slot-ref obj 'name) disk)
-                                #:name (slot-ref obj 'name)
-                                #:instance (car disk)
-                                #:color (slot-ref obj 'color)
-                                #:border (if (clicked? 'disk (car disk)) "#777777" #f)
-                                #:border-top 0
-                                #:border-left 0
-                                #:border-right 0
-                                #:border-bottom 2))
-                    (slot-ref obj 'used))
-               ","))
+(define-method (fmt (obj <disk>) (clicked? <boolean>))
+  (let ((max (ash 1 27))
+        (read (slot-ref obj 'read))
+        (written (slot-ref obj 'written)))
+    (values
+     (format #f "~a ~a~a~a~a"
+             (slot-ref obj 'id)
+             (if clicked? (format-size read) "")
+             (format-bar read max)
+             (format-bar written max)
+             (if clicked? (format-size written) ""))
+     #:border (if clicked? "#777777" #f))))
 
 ;; --- cpu
 
-(define-class <cpu> (<obj>)
-  used)
+(define-class <cpu> (<obj>))
+
+(define-class <core> (<instance>)
+  (percent #:init-keyword #:percent)
+  (last? #:init-keyword #:last?
+         #:init-value #f))
 
 (define-method (fetch (obj <cpu>))
   (read-proc-stat!))
@@ -542,35 +553,68 @@
                        (floor (* 100 (/ (- total-cpu-time idle-cpu-time)
                                         total-cpu-time))))))
         (data (difference (slot-ref obj 'data) (slot-ref obj 'old-data))))
-    (slot-set! obj 'used
-               (append (list (cpu-usage (get data 'cpu)))
-                       (map cpu-usage (get data 'cores))))))
+    (let loop ((cores (map cpu-usage (get data 'cores)))
+               (i 0)
+               (result (list)))
+      (if (null? cores)
+          (reverse result)
+          (loop (cdr cores)
+                (+ i 1)
+                (cons (make <core>
+                        #:obj obj
+                        #:id (string->lispified-symbol
+                              (format #f "core-~a" i))
+                        #:percent (car cores)
+                        #:last? (null? (cdr cores)))
+                      result))))))
 
-(define-method (fmt (obj <cpu>) (clicked? <boolean>))
-  (apply string-append
-         (map format-cpu (cdr (slot-ref obj 'used)))))
+(define-method (fmt (obj <core>) (clicked? <boolean>))
+  (let ((percent (slot-ref obj 'percent)))
+    (values (apply format #f
+                   (if (> percent 95)
+                       "<span foreground=\"#DA1000\">~a</span>"
+                       "~a")
+                   (list (cond
+                          ((> percent 90) "█")
+                          ((> percent 80) "▇")
+                          ((> percent 70) "▆")
+                          ((> percent 60) "▅")
+                          ((> percent 50) "▄")
+                          ((> percent 40) "▃")
+                          ((> percent 30) "▂")
+                          (else "▁"))))
+            #:separator-block-width (if (slot-ref obj 'last?) #f 1))))
 
 ;; --- mem
 
 (define-class <mem> (<obj>)
+  total
   used)
 
 (define-method (fetch (obj <mem>))
   (read-proc-meminfo!))
 
 (define-method (adjust (obj <mem>) (diff <number>))
-  (slot-set! obj 'used (slot-ref obj 'data)))
+  (let* ((mem-info (slot-ref obj 'data))
+         (mem-total (get mem-info 'mem-total)))
+    (slot-set! obj 'total mem-total)
+    (slot-set! obj 'used (- mem-total (get mem-info 'mem-available)))
+    (list)))
 
 (define-method (fmt (obj <mem>) (clicked? <boolean>))
-  (let* ((mem-info (slot-ref obj 'used))
-         (mem-total (get mem-info 'mem-total))
-         (mem-available (get mem-info 'mem-available))
-         (mem-used (- mem-total mem-available)))
-    (apply format #f
-           (if (> (/ mem-used mem-total) 0.9)
-               "<span foreground=\"#DA1000\">~4d</span>mb"
-               "~4dmb")
-           (list (ash mem-used -20)))))
+  (let ((mem-used (slot-ref obj 'used))
+        (mem-total (slot-ref obj 'total)))
+    (i3-block (apply format #f
+                     (if (> (/ mem-used mem-total) 0.9)
+                         "<span foreground=\"#DA1000\">~4d~a</span>mb"
+                         "~4d~amb")
+                     (list (ash mem-used -20)
+                           (if clicked?
+                               (format #f "/~4d" (ash mem-total -20))
+                               "")))
+              #:name (slot-ref obj 'name)
+              #:color (slot-ref obj 'color)
+              #:border (if clicked? "#777777" #f))))
 
 ;; --- battery
 
@@ -597,16 +641,19 @@
            (slot-set! obj 'status status)
            (slot-set! obj 'percent
                       (round (* 100 (/ now (if (= 0 full) 1 full))))))
-         (slot-ref obj 'data)))
+         (slot-ref obj 'data))
+  (list))
 
 (define-method (fmt (obj <bat>) (clicked? <boolean>))
-  (if clicked?
-      ;; XXX red when low
-      (format #f "~a ~a%"
-              (slot-ref obj 'status)
-              (slot-ref obj 'percent))
-      (format #f "~a%"
-              (slot-ref obj 'percent))))
+  (i3-block (if clicked?
+                ;; XXX red when low
+                (format #f "~a ~a%"
+                        (slot-ref obj 'status)
+                        (slot-ref obj 'percent))
+                (format #f "~a%"
+                        (slot-ref obj 'percent)))
+            #:name (slot-ref obj 'name)
+            #:color (slot-ref obj 'color)))
 
 ;; --- time
 
@@ -616,13 +663,15 @@
   (slot-set! obj 'data (current-time)))
 
 (define-method (adjust (obj <time>) (diff <number>))
-  #f)
+  (list))
 
 (define-method (fmt (obj <time>) (clicked? <boolean>))
-  (strftime (if clicked?
-                "%a, %e.%m.%Y %H:%M"
-                "%H:%M")
-            (localtime (slot-ref obj 'data))))
+  (i3-block (strftime (if clicked?
+                          "%a, %e.%m.%Y %H:%M"
+                          "%H:%M")
+                      (localtime (slot-ref obj 'data)))
+            #:name (slot-ref obj 'name)
+            #:color (slot-ref obj 'color)))
 
 ;; ---
 
@@ -635,7 +684,7 @@
 ;; ---
 
 (define* (i3-block full-text #:key short-text color background
-                   border border-top border-right border-bottom border-left
+                   border (border-top 0) (border-right 0) (border-bottom 2) (border-left 0)
                    min-width align urgent? name instance
                    (separator? #f) separator-block-width
                    (markup "pango"))
@@ -677,7 +726,10 @@
   (with-output-to-port port
     (lambda ()
       (format port ",[")
-      (format port "~a" (string-join (map fmt-i3-obj objs) ","))
+      (format port "~a" (string-join (map (lambda (obj)
+                                            (fmt obj (clicked? obj)))
+                                          objs)
+                                     ","))
       (format port "]~%")
       (force-output port))))
 
@@ -690,7 +742,8 @@
   (when running
     (map update objs)
     (map (lambda (obj)
-           (adjust obj (slot-ref obj 'diff)))
+           (slot-set! obj 'instances
+                      (adjust obj (slot-ref obj 'diff))))
          objs)
     (print!))
   (main-loop))
@@ -727,12 +780,12 @@
     ((= signal SIGUSR2) (print!))))
 
 (define objs
-  (list (make <net>  #:name 'net  #:color "#D66563")
-        (make <disk> #:name 'disk #:color "#9895FA")
-        (make <mem>  #:name 'mem  #:color "#E8D900")
-        (make <cpu>  #:name 'cpu  #:color "#4AFFCD")
-        (make <bat>  #:name 'bat  #:color "#FFAAFF")
-        (make <time> #:name 'time #:color "#FFFFFF")))
+  (list (make <net>   #:name 'net   #:color "#D66563")
+        (make <disks> #:name 'disks #:color "#9895FA")
+        (make <mem>   #:name 'mem   #:color "#E8D900")
+        (make <cpu>   #:name 'cpu   #:color "#4AFFCD")
+        (make <bat>   #:name 'bat   #:color "#FFAAFF")
+        (make <time>  #:name 'time  #:color "#FFFFFF")))
 
 (sigaction SIGUSR1 signal-handler)
 (sigaction SIGCONT signal-handler)
