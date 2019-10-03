@@ -423,7 +423,7 @@
          (current (current-tick))
          (diff (/ (- current last) 1000)))
     (slot-set! obj 'time current)
-    (slot-set! obj 'diff diff)))
+    (slot-set! obj 'diff (if (= diff 0) 1 diff))))
 
 (define-method (adjust (obj <obj>) (diff <number>))
   (error "Implement adjust for" obj))
@@ -455,8 +455,8 @@
           (loop (cdr devices)
                 (let ((device (car devices)))
                   (cons (list (car device)
-                              (round (* diff (get (cdr device) 'received-bytes)))
-                              (round (* diff (get (cdr device) 'transmitted-bytes))))
+                              (round (/ (get (cdr device) 'received-bytes) diff))
+                              (round (/ (get (cdr device) 'transmitted-bytes) diff)))
                         result)))))))
 
 (define-method (fmt-i3-obj (obj <net>))
@@ -493,8 +493,10 @@
                 (let* ((disk (car disks))
                        (disk-name (car disk))
                        (disk-total (get (cdr disk) 'total))
-                       (read-bytes (round (* diff (* 512 (get disk-total 'sectors-read)))))
-                       (written-bytes (round (* diff (* 512 (get disk-total 'sectors-written))))))
+                       (read-bytes (round (/ (* 512 (get disk-total 'sectors-read))
+                                             diff)))
+                       (written-bytes (round (/ (* 512 (get disk-total 'sectors-written))
+                                                diff))))
                   (cons (list disk-name read-bytes written-bytes)
                         result)))))))
 
