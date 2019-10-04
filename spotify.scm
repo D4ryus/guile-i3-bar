@@ -63,12 +63,11 @@
 (define-method (fmt (obj <spotify>) (clicked? <boolean>))
   (if (not (slot-ref obj 'running?))
       #f
-      (i3-block (if clicked?
-                    (format #f "~a - ~a - ~a"
-                            (slot-ref obj 'artist)
-                            (slot-ref obj 'album)
-                            (slot-ref obj 'title))
-                    (format #f "~a" (slot-ref obj 'title)))
-                #:name (slot-ref obj 'name)
-                #:color (slot-ref obj 'color)
-                #:markup #f)))
+      (values
+       (if clicked?
+           (format #f "~a - ~a - ~a"
+                   (slot-ref obj 'artist)
+                   (slot-ref obj 'album)
+                   (slot-ref obj 'title))
+           (format #f "~a" (slot-ref obj 'title)))
+       #:markup #f)))

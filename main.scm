@@ -13,7 +13,6 @@
   #:use-module (guile-i3-bar time)
   #:use-module (ice-9 format)
   #:use-module (ice-9 pretty-print)
-  #:use-module (ice-9 receive)
   #:use-module (ice-9 threads)
   #:use-module (json)
   #:use-module (oop goops)
@@ -27,35 +26,18 @@
 (define main-loop-error #f)
 (define print-pending? #f)
 
-(define* (print! #:optional (port stdout))
-  (with-output-to-port port
-    (lambda ()
-      (format port ",[")
-      (format port "~a" (string-join
-                         (delete #f
-                                 (map (lambda (obj)
-                                        (fmt obj (clicked? obj)))
-                                      objs))
-                         ","))
-      (format port "]~%")
-      (force-output port))))
-
 (define running #t)
 
 (define (main-loop)
   (let loop ((sleep 1000000))
     (when (> sleep 0)
       (when print-pending?
-        (print!)
+        (print! stdout objs)
         (set! print-pending? #f))
       (loop (usleep sleep))))
   (when running
-    (map update objs)
-    (map (lambda (obj)
-           (slot-set! obj 'instances
-                      (adjust obj (slot-ref obj 'diff))))
-         objs)
-    (print!))
+    (update! objs)
+    (print! stdout objs))
   (main-loop))
 
 (define* (init #:key (version 1) (stop-signal SIGUSR1) (cont-signal SIGCONT)
@@ -71,7 +53,7 @@
                    (cons "click_events" click-events))
              stdout)
   (format stdout "~%[[]~%")
-  (map update objs)
+  (update! objs #f)
 
   (main-loop)
   (catch #t

@@ -43,12 +43,10 @@
 (define-method (fmt (obj <battery>) (clicked? <boolean>))
   (if (not (slot-ref obj 'exists?))
       #f
-      (i3-block (if clicked?
-                    ;; XXX red when low
-                    (format #f "~a ~a%"
-                            (slot-ref obj 'status)
-                            (slot-ref obj 'percent))
-                    (format #f "~a%"
-                            (slot-ref obj 'percent)))
-                #:name (slot-ref obj 'name)
-                #:color (slot-ref obj 'color))))
+      (if clicked?
+          ;; XXX red when low
+          (format #f "~a ~a%"
+                  (slot-ref obj 'status)
+                  (slot-ref obj 'percent))
+          (format #f "~a%"
+                  (slot-ref obj 'percent)))))

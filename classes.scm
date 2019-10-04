@@ -8,7 +8,8 @@
             adjust
             fetch
             fmt
-            update))
+            update!
+            print!))
 
 (define-class <obj> ()
   (time #:init-value 0)
@@ -28,31 +29,44 @@
 (define-method (clicked? (obj <obj>))
   (clicked? (slot-ref obj 'name) #f))
 
-(define-method (update (obj <obj>))
+(define-method (update (obj <obj>) (adjust? <boolean>))
   (slot-set! obj 'old-data (slot-ref obj 'data))
   (slot-set! obj 'data (fetch obj))
   (let* ((last (slot-ref obj 'time))
          (current (current-tick))
          (diff (/ (- current last) 1000)))
+    (when (= diff 0)
+      (set! diff 1))
     (slot-set! obj 'time current)
-    (slot-set! obj 'diff (if (= diff 0) 1 diff))))
+    (slot-set! obj 'diff diff)
+    (when adjust?
+      (slot-set! obj 'instances (adjust obj diff)))))
 
 (define-method (adjust (obj <obj>) (diff <number>))
-  (error "Implement adjust for" obj))
+  (list))
 
-(define-method (fmt (obj <obj>) (clicked <boolean>))
-  (string-join
-   (map (lambda (instance)
-          (receive (fmt . args)
-              (fmt instance (clicked? instance))
-            (apply i3-block fmt
-                   (append
-                    (list #:name (slot-ref obj 'name)
-                          #:color (slot-ref obj 'color)
-                          #:instance (slot-ref instance 'id))
-                    args))))
-        (slot-ref obj 'instances))
-   ","))
+(define-method (fmt (obj <obj>) (clicked? <boolean>))
+  #f)
+
+(define-method (print (obj <obj>))
+  (let ((to-i3-obj
+         (lambda* (#:optional (instance #f))
+           (receive (text . args)
+               (fmt (or instance obj) (clicked? (or instance obj)))
+             (if (not text)
+                 #f
+                 (apply i3-block text
+                        (append
+                         (list #:name (slot-ref obj 'name)
+                               #:color (slot-ref obj 'color)
+                               #:instance (and instance (slot-ref instance 'id)))
+                         args)))))))
+    (let ((list (delete #f
+                        (append (list (to-i3-obj))
+                                (map to-i3-obj (slot-ref obj 'instances))))))
+      (if (null? list)
+          #f
+          (string-join list ",")))))
 
 (define-class <instance> ()
   (obj #:init-form (error "<obj> required")
@@ -66,3 +80,15 @@
 
 (define-method (fmt (obj <instance>) (clicked? <boolean>))
   (error "Implement fmt for" obj))
+
+(define* (update! objs #:optional (adjust? #t))
+  (map (lambda (obj)
+         (update obj adjust?))
+       objs))
+
+(define (print! port objs)
+  (with-output-to-port port
+    (lambda ()
+      (format port ",[~a]~%"
+              (string-join (delete #f (map print objs)) ","))
+      (force-output port))))
