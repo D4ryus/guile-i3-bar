@@ -1,7 +1,7 @@
 (define-module (guile-i3-bar misc)
-  #:use-module (srfi srfi-1)
-  #:use-module (json)
   #:use-module (ice-9 regex)
+  #:use-module (json)
+  #:use-module (srfi srfi-1)
   #:export (accumulate
             accumulate-alist
             current-tick

@@ -1,9 +1,10 @@
 (define-module (guile-i3-bar mem)
   #:export (<mem>)
-  #:use-module (oop goops)
-  #:use-module (guile-i3-bar proc)
+  #:use-module (guile-i3-bar classes)
   #:use-module (guile-i3-bar misc)
-  #:use-module (guile-i3-bar classes))
+  #:use-module (guile-i3-bar proc)
+  #:use-module (ice-9 receive)
+  #:use-module (oop goops))
 
 (define-class <mem> (<obj>)
   total

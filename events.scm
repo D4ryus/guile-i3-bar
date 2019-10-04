@@ -1,8 +1,8 @@
 (define-module (guile-i3-bar events)
-  #:use-module (oop goops)
-  #:use-module (json)
-  #:use-module (ice-9 rdelim)
   #:use-module (guile-i3-bar misc)
+  #:use-module (ice-9 rdelim)
+  #:use-module (json)
+  #:use-module (oop goops)
   #:export (clicked?
             process-click-events))
 

@@ -1,9 +1,9 @@
 (define-module (guile-i3-bar cpu)
   #:export (<cpu>)
-  #:use-module (oop goops)
-  #:use-module (guile-i3-bar proc)
+  #:use-module (guile-i3-bar classes)
   #:use-module (guile-i3-bar misc)
-  #:use-module (guile-i3-bar classes))
+  #:use-module (guile-i3-bar proc)
+  #:use-module (oop goops))
 
 (define-class <cpu> (<obj>))
 
