@@ -25,6 +25,7 @@
 (define stdin (current-input-port))
 (define main-thread (current-thread))
 (define main-loop-error #f)
+(define print-pending? #f)
 
 (define* (print! #:optional (port stdout))
   (with-output-to-port port
@@ -44,6 +45,9 @@
 (define (main-loop)
   (let loop ((sleep 1000000))
     (when (> sleep 0)
+      (when print-pending?
+        (print!)
+        (set! print-pending? #f))
       (loop (usleep sleep))))
   (when running
     (map update objs)
@@ -83,7 +87,7 @@
   (cond
     ((= signal SIGUSR1) (set! running #f))
     ((= signal SIGCONT) (set! running #t))
-    ((= signal SIGUSR2) (print!))))
+    ((= signal SIGUSR2) (set! print-pending? #t))))
 
 (define objs
   (list (make <spotify> #:name 'spotify #:color "#6AE368")
