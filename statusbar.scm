@@ -552,10 +552,10 @@
     (values
      (format #f "~a ~a~a~a~a"
              (slot-ref obj 'id)
-             (if clicked? (format-size rec) "")
+             (if clicked? (string-append (format-size rec) " ") "")
              (format-bar rec max)
              (format-bar trans max)
-             (if clicked? (format-size trans) ""))
+             (if clicked? (string-append " " (format-size trans)) ""))
      #:border (if clicked? "#777777" #f))))
 
 ;; --- disk
@@ -596,10 +596,10 @@
     (values
      (format #f "~a ~a~a~a~a"
              (slot-ref obj 'id)
-             (if clicked? (format-size read) "")
+             (if clicked? (string-append (format-size read) " ") "")
              (format-bar read max)
              (format-bar written max)
-             (if clicked? (format-size written) ""))
+             (if clicked? (string-append " " (format-size written)) ""))
      #:border (if clicked? "#777777" #f))))
 
 ;; --- cpu
