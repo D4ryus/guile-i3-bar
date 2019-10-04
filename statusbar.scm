@@ -115,14 +115,6 @@
                ((> size kb) (format #f "~4dkb" (ash size -10)))
                (#t          (format #f "~4db " size)))))))
 
-(define (string->color-hash s)
-  (let ((hash (string-hash s)))
-    (apply string-append "#"
-           (map (lambda (num) (format #f "~2,'0x" num))
-                (list (ash (logand #xff0000 hash) -16)
-                      (ash (logand #xff00 hash) -8)
-                      (logand #xff hash))))))
-
 (define (format-bar value max)
   (let ((percent (if (= max 0)
                      0
