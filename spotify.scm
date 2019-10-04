@@ -49,7 +49,7 @@
 (define-method (fetch (obj <spotify>))
   (read-spotify!))
 
-(define-method (adjust (obj <spotify>) (diff <number>))
+(define-method (process (obj <spotify>) (diff <number>))
   (let ((data (slot-ref obj 'data)))
     (if (null? data)
         (slot-set! obj 'running? #f)

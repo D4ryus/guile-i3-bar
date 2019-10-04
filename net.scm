@@ -15,7 +15,7 @@
 (define-method (fetch (obj <net>))
   (read-proc-net-dev!))
 
-(define-method (adjust (obj <net>) (diff <number>))
+(define-method (process (obj <net>) (diff <number>))
   (let* ((cache (slot-ref obj 'old-data))
          (new (slot-ref obj 'data))
          (data (difference new cache)))

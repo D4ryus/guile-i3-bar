@@ -5,7 +5,7 @@
   #:use-module (oop goops)
   #:export (<obj>
             <instance>
-            adjust
+            process
             fetch
             fmt
             update!
@@ -23,13 +23,13 @@
   (instances #:init-value (list)))
 
 (define-generic fetch)
-(define-generic adjust)
+(define-generic process)
 (define-generic fmt)
 
 (define-method (clicked? (obj <obj>))
   (clicked? (slot-ref obj 'name) #f))
 
-(define-method (update (obj <obj>) (adjust? <boolean>))
+(define-method (update (obj <obj>) (process? <boolean>))
   (slot-set! obj 'old-data (slot-ref obj 'data))
   (slot-set! obj 'data (fetch obj))
   (let* ((last (slot-ref obj 'time))
@@ -39,10 +39,10 @@
       (set! diff 1))
     (slot-set! obj 'time current)
     (slot-set! obj 'diff diff)
-    (when adjust?
-      (slot-set! obj 'instances (adjust obj diff)))))
+    (when process?
+      (slot-set! obj 'instances (process obj diff)))))
 
-(define-method (adjust (obj <obj>) (diff <number>))
+(define-method (process (obj <obj>) (diff <number>))
   (list))
 
 (define-method (fmt (obj <obj>) (clicked? <boolean>))
@@ -81,9 +81,9 @@
 (define-method (fmt (obj <instance>) (clicked? <boolean>))
   (error "Implement fmt for" obj))
 
-(define* (update! objs #:optional (adjust? #t))
+(define* (update! objs #:optional (process? #t))
   (map (lambda (obj)
-         (update obj adjust?))
+         (update obj process?))
        objs))
 
 (define (print! port objs)

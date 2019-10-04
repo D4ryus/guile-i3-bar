@@ -13,7 +13,7 @@
 (define-method (fetch (obj <mem>))
   (read-proc-meminfo!))
 
-(define-method (adjust (obj <mem>) (diff <number>))
+(define-method (process (obj <mem>) (diff <number>))
   (let* ((mem-info (slot-ref obj 'data))
          (mem-total (get mem-info 'mem-total)))
     (slot-set! obj 'total mem-total)

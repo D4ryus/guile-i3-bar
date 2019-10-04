@@ -14,7 +14,7 @@
 (define-method (fetch (obj <disks>))
   (read-proc-diskstats!))
 
-(define-method (adjust (obj <disks>) (diff <number>))
+(define-method (process (obj <disks>) (diff <number>))
   (let* ((cache (slot-ref obj 'old-data))
          (new (slot-ref obj 'data))
          (data (difference new cache)))

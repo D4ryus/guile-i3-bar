@@ -28,7 +28,7 @@
              (list status full now)
              (list identity string->number string->number)))))
 
-(define-method (adjust (obj <battery>) (diff <number>))
+(define-method (process (obj <battery>) (diff <number>))
   (let ((data (slot-ref obj 'data)))
     (if (not data)
         (slot-set! obj 'exists? #f)

@@ -15,7 +15,7 @@
 (define-method (fetch (obj <cpu>))
   (read-proc-stat!))
 
-(define-method (adjust (obj <cpu>) (diff <number>))
+(define-method (process (obj <cpu>) (diff <number>))
   (let ((cpu-usage (lambda (cpu-stats)
                      (let* ((all '(user nice system idle iowait irq softirq steal))
                             (idle '(idle iowait))
