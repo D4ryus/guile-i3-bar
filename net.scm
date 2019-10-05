@@ -45,4 +45,4 @@
              (format-bar rec max)
              (format-bar trans max)
              (if (toggled? obj) (string-append " " (format-size trans)) ""))
-     #:border (if (toggled? obj) "#777777" #f))))
+     #:border (if (toggled? obj) (slot-ref (slot-ref obj 'obj) 'color) #f))))

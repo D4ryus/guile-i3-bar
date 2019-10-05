@@ -10,7 +10,11 @@
   (slot-set! obj 'data (current-time)))
 
 (define-method (fmt (obj <time>))
-  (strftime (if (toggled? obj)
-                "%a, %e.%m.%Y %H:%M"
-                "%H:%M")
-            (localtime (slot-ref obj 'data))))
+  (values
+   (strftime (if (toggled? obj)
+                 "%a, %e.%m.%Y %H:%M"
+                 "%H:%M")
+             (localtime (slot-ref obj 'data)))
+   #:border (if (toggled? obj)
+                (slot-ref obj 'color)
+                #f)))

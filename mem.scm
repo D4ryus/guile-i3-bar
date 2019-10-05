@@ -44,4 +44,4 @@
                     "<span foreground=\"#DA1000\">~4d</span>mb"
                     "~4dmb")
                 (list mem-used)))
-     #:border (if (toggled? obj) "#777777" #f))))
+     #:border (if (toggled? obj) (slot-ref obj 'color) #f))))
