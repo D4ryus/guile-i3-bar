@@ -116,6 +116,9 @@
 
 (define-method (on-event (obj <next>) (event <list>))
   (run-spotify-cmd! "Next")
+  ;; XXX We need to wait a bit before pulling Song info, otherwise we
+  ;; XXX get info about the last song
+  (usleep 30000)
   #t)
 
 (define-method (fmt (obj <next>))
