@@ -6,7 +6,7 @@
   #:use-module (oop goops)
   #:use-module (srfi srfi-1))
 
-(define-class <battery> (<obj>)
+(define-class <battery> (<toggleable> <obj>)
   (exists? #:init-value #f)
   (path #:init-value "/sys/class/power_supply/BAT0"
         #:init-keyword #:path)
@@ -40,10 +40,10 @@
                data))
     (list)))
 
-(define-method (fmt (obj <battery>) (clicked? <boolean>))
+(define-method (fmt (obj <battery>))
   (if (not (slot-ref obj 'exists?))
       #f
-      (if clicked?
+      (if (toggled? obj)
           ;; XXX red when low
           (format #f "~a ~a%"
                   (slot-ref obj 'status)

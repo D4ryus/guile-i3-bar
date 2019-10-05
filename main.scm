@@ -4,7 +4,6 @@
   #:use-module (guile-i3-bar classes)
   #:use-module (guile-i3-bar cpu)
   #:use-module (guile-i3-bar disks)
-  #:use-module (guile-i3-bar events)
   #:use-module (guile-i3-bar mem)
   #:use-module (guile-i3-bar misc)
   #:use-module (guile-i3-bar net)
@@ -13,6 +12,7 @@
   #:use-module (guile-i3-bar time)
   #:use-module (ice-9 format)
   #:use-module (ice-9 pretty-print)
+  #:use-module (ice-9 rdelim)
   #:use-module (ice-9 threads)
   #:use-module (json)
   #:use-module (oop goops)
@@ -24,16 +24,49 @@
 (define stdin (current-input-port))
 (define main-thread (current-thread))
 (define main-loop-error #f)
-(define print-pending? #f)
+(define event-pending? #f)
+(define events (list))
+(define events-mutex (make-mutex))
+
+(define (push-event event)
+  (with-mutex events-mutex
+    (set! events (cons event events))))
+
+(define (pop-event)
+  (with-mutex events-mutex
+    (if (null? events)
+        #f
+        (let ((event (car events)))
+          (set! events (cdr events))
+          event))))
+
+(define (handle-events)
+  (let loop ((event (pop-event)))
+    (when event
+      (let ((name (string->symbol (get event "name")))
+            (instance (get event "instance")))
+        (when instance
+          (set! instance (string->symbol instance)))
+        (map (lambda (obj)
+               (when (equal? (slot-ref obj 'name) name)
+                 (if (not instance)
+                     (when (on-event obj event)
+                       (update obj #t))
+                     (let ((inst (get-instance obj instance)))
+                       (when (and inst (on-event inst event))
+                         (update obj #t))))))
+             objs)
+        (loop (pop-event))))))
 
 (define running #t)
 
 (define (main-loop)
   (let loop ((sleep 1000000))
     (when (> sleep 0)
-      (when print-pending?
+      (when event-pending?
+        (handle-events)
         (print! stdout objs)
-        (set! print-pending? #f))
+        (set! event-pending? #f))
       (loop (usleep sleep))))
   (when running
     (update! objs)
@@ -69,7 +102,7 @@
   (cond
     ((= signal SIGUSR1) (set! running #f))
     ((= signal SIGCONT) (set! running #t))
-    ((= signal SIGUSR2) (set! print-pending? #t))))
+    ((= signal SIGUSR2) (set! event-pending? #t))))
 
 (define objs
   (list (make <spotify> #:name 'spotify #:color "#6AE368")
@@ -79,6 +112,16 @@
         (make <cpu>     #:name 'cpu     #:color "#4AFFCD")
         (make <battery> #:name 'battery #:color "#FFAAFF")
         (make <time>    #:name 'time    #:color "#FFFFFF")))
+
+(define* (process-click-events port)
+  ;; Format is:
+  ;; [\n{ ... }\n,{ ... }\n ...
+  ;; So if we read a [ it means we just starded processing events
+  (when (equal? (read-char port) #\[)
+    (read-line port))
+  (push-event (json-string->scm (read-line port)))
+  (raise SIGUSR2)
+  (process-click-events port))
 
 (define (main)
   (sigaction SIGUSR1 signal-handler)

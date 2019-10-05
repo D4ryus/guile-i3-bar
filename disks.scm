@@ -7,9 +7,9 @@
 
 (define-class <disks> (<obj>))
 
-(define-class <disk> (<instance>)
-  (read #:init-keyword #:read)
-  (written #:init-keyword #:written))
+(define-class <disk> (<toggleable> <instance>)
+  read
+  written)
 
 (define-method (fetch (obj <disks>))
   (read-proc-diskstats!))
@@ -25,24 +25,22 @@
           (loop (cdr disks)
                 (let* ((disk (car disks))
                        (disk-total (get (cdr disk) 'total)))
-                  (cons (make <disk>
-                          #:obj obj
-                          #:id (car disk)
-                          #:read (round (/ (* 512 (get disk-total 'sectors-read))
-                                           diff))
-                          #:written (round (/ (* 512 (get disk-total 'sectors-written))
-                                              diff)))
+                  (cons (update-slots (get-instance obj (car disk) <disk>)
+                                      'read (round (/ (* 512 (get disk-total 'sectors-read))
+                                                      diff))
+                                      'written (round (/ (* 512 (get disk-total 'sectors-written))
+                                                         diff)))
                         result)))))))
 
-(define-method (fmt (obj <disk>) (clicked? <boolean>))
+(define-method (fmt (obj <disk>))
   (let ((max (ash 1 27))
         (read (slot-ref obj 'read))
         (written (slot-ref obj 'written)))
     (values
      (format #f "~a ~a~a~a~a"
              (slot-ref obj 'id)
-             (if clicked? (string-append (format-size read) " ") "")
+             (if (toggled? obj) (string-append (format-size read) " ") "")
              (format-bar read max)
              (format-bar written max)
-             (if clicked? (string-append " " (format-size written)) ""))
-     #:border (if clicked? "#777777" #f))))
+             (if (toggled? obj) (string-append " " (format-size written)) ""))
+     #:border (if (toggled? obj) "#777777" #f))))

@@ -1,16 +1,28 @@
 (define-module (guile-i3-bar classes)
-  #:use-module (guile-i3-bar events)
   #:use-module (guile-i3-bar misc)
   #:use-module (ice-9 receive)
   #:use-module (oop goops)
+  #:use-module (srfi srfi-1)
   #:export (<obj>
             <instance>
-            process
+            <toggleable>
             fetch
             fmt
-            unclick
-            update!
-            print!))
+            get-instance
+            on-event
+            print!
+            process
+            toggled?
+            update
+            update-slots
+            update!))
+
+(define-method (update-slots obj . slots)
+  (let loop ((slots slots))
+    (when (not (null? slots))
+      (slot-set! obj (first slots) (second slots))
+      (loop (cddr slots)))
+    obj))
 
 (define-class <obj> ()
   (time #:init-value 0)
@@ -26,13 +38,7 @@
 (define-generic fetch)
 (define-generic process)
 (define-generic fmt)
-
-(define-method (clicked? (obj <obj>))
-  (clicked? (slot-ref obj 'name) #f))
-
-(define-method (unclick (obj <obj>))
-  (delete-click-event
-   (make-click-event (slot-ref obj 'name) #f)))
+(define-generic on-event)
 
 (define-method (update (obj <obj>) (process? <boolean>))
   (slot-set! obj 'old-data (slot-ref obj 'data))
@@ -50,14 +56,14 @@
 (define-method (process (obj <obj>) (diff <number>))
   (list))
 
-(define-method (fmt (obj <obj>) (clicked? <boolean>))
+(define-method (fmt (obj <obj>))
   #f)
 
 (define-method (print (obj <obj>))
   (let ((to-i3-obj
          (lambda* (#:optional (instance #f))
            (receive (text . args)
-               (fmt (or instance obj) (clicked? (or instance obj)))
+               (fmt (or instance obj))
              (if (not text)
                  #f
                  (apply i3-block text
@@ -73,22 +79,28 @@
           #f
           (string-join list ",")))))
 
+(define-method (on-event (obj <obj>) (event <list>))
+  #f)
+
+(define-method (get-instance (obj <obj>) (id <symbol>))
+  (find (lambda (instance)
+          (equal? (slot-ref instance 'id)
+                  id))
+        (slot-ref obj 'instances)))
+
+(define-method (get-instance (obj <obj>) (id <symbol>) (instance <class>))
+  (or (get-instance obj id)
+      (make instance
+        #:id id
+        #:obj obj)))
+
 (define-class <instance> ()
   (obj #:init-form (error "<obj> required")
        #:init-keyword #:obj)
   (id #:init-form (error "Id required")
       #:init-keyword #:id))
 
-(define-method (clicked? (obj <instance>))
-  (clicked? (slot-ref (slot-ref obj 'obj) 'name)
-            (slot-ref obj 'id)))
-
-(define-method (unclick (obj <instance>))
-  (delete-click-event
-   (make-click-event (slot-ref (slot-ref obj 'obj) 'name)
-                     (slot-ref obj 'id))))
-
-(define-method (fmt (obj <instance>) (clicked? <boolean>))
+(define-method (fmt (obj <instance>))
   (error "Implement fmt for" obj))
 
 (define* (update! objs #:optional (process? #t))
@@ -102,3 +114,17 @@
       (format port ",[~a]~%"
               (string-join (delete #f (map print objs)) ","))
       (force-output port))))
+
+(define-method (on-event (obj <instance>) (event <list>))
+  #f)
+
+(define-class <toggleable> ()
+  (toggled? #:init-value #f))
+
+(define-method (on-event (obj <toggleable>) (event <list>))
+  (slot-set! obj 'toggled?
+             (not (slot-ref obj 'toggled?)))
+  #f)
+
+(define-method (toggled? (obj <toggleable>))
+  (slot-ref obj 'toggled?))

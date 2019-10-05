@@ -8,9 +8,9 @@
 (define-class <net> (<obj>)
   used)
 
-(define-class <interface> (<instance>)
-  (received #:init-keyword #:received)
-  (transmitted #:init-keyword #:transmitted))
+(define-class <interface> (<toggleable> <instance>)
+  received
+  transmitted)
 
 (define-method (fetch (obj <net>))
   (read-proc-net-dev!))
@@ -25,26 +25,24 @@
           (reverse result)
           (loop (cdr devices)
                 (let ((device (car devices)))
-                  (cons (make <interface>
-                          #:obj obj
-                          #:id (car device)
-                          #:received (round
-                                      (/ (get (cdr device) 'received-bytes)
-                                         diff))
-                          #:transmitted (round
-                                         (/ (get (cdr device) 'transmitted-bytes)
-                                            diff)))
+                  (cons (update-slots (get-instance obj (car device) <interface>)
+                                      'received (round
+                                                 (/ (get (cdr device) 'received-bytes)
+                                                    diff))
+                                      'transmitted (round
+                                                    (/ (get (cdr device) 'transmitted-bytes)
+                                                       diff)))
                         result)))))))
 
-(define-method (fmt (obj <interface>) (clicked? <boolean>))
+(define-method (fmt (obj <interface>))
   (let ((max (ash 1 23))
         (rec (slot-ref obj 'received))
         (trans (slot-ref obj 'transmitted)))
     (values
      (format #f "~a ~a~a~a~a"
              (slot-ref obj 'id)
-             (if clicked? (string-append (format-size rec) " ") "")
+             (if (toggled? obj) (string-append (format-size rec) " ") "")
              (format-bar rec max)
              (format-bar trans max)
-             (if clicked? (string-append " " (format-size trans)) ""))
-     #:border (if clicked? "#777777" #f))))
+             (if (toggled? obj) (string-append " " (format-size trans)) ""))
+     #:border (if (toggled? obj) "#777777" #f))))

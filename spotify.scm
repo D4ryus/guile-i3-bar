@@ -52,8 +52,7 @@
                     (match line 'title  (make-regexp "^xesam:title: (.*)$"))))
               output)))))
 
-(define-class <spotify> (<obj>)
-  (running? #:init-value #f))
+(define-class <spotify> (<obj>))
 
 (define-method (fetch (obj <spotify>))
   (let ((info (read-spotify-info!)))
@@ -65,73 +64,66 @@
               (append (list playback-status)
                       info))))))
 
-(define-class <sp-info> (<instance>)
-  (artist #:init-keyword #:artist)
-  (album  #:init-keyword #:album)
-  (title  #:init-keyword #:title))
+(define-class <info> (<toggleable> <instance>)
+  artist
+  album
+  title)
 
-(define-class <sp-prev> (<instance>))
-(define-class <sp-play-pause> (<instance>)
-  (playback-status #:init-keyword #:playback-status))
+(define-class <prev> (<instance>))
+(define-class <play-pause> (<instance>)
+  playback-status)
 
-(define-class <sp-next> (<instance>))
+(define-class <next> (<instance>))
 
 (define-method (process (obj <spotify>) (diff <number>))
   (let ((data (slot-ref obj 'data)))
     (if (not data)
-        (begin
-          (slot-set! obj 'running? #f)
-          (list))
-        (begin
-          (slot-set! obj 'running? #t)
-          (list (make <sp-prev>
-                  #:id 'sp-prev
-                  #:obj obj)
-                (make <sp-play-pause>
-                  #:id 'play-pause
-                  #:obj obj
-                  #:playback-status (get data 'playback-status))
-                (make <sp-next>
-                  #:id 'sp-next
-                  #:obj obj)
-                (make <sp-info>
-                  #:id 'info
-                  #:obj obj
-                  #:artist (get data 'artist)
-                  #:album (get data 'album)
-                  #:title (get data 'title)))))))
+        (list)
+        (list (get-instance obj 'prev <prev>)
+              (update-slots (get-instance obj 'play-pause <play-pause>)
+                            'playback-status (get data 'playback-status))
+              (get-instance obj 'next <next>)
+              (update-slots (get-instance obj 'info <info>)
+                            'artist (get data 'artist)
+                            'album (get data 'album)
+                            'title (get data 'title))))))
 
-(define-method (fmt (obj <sp-prev>) (clicked? <boolean>))
-  (when clicked?
-    (unclick obj)
-    (run-spotify-cmd! "Previous"))
+(define-method (on-event (obj <prev>) (event <list>))
+  (run-spotify-cmd! "Previous")
+  #f)
+
+(define-method (fmt (obj <prev>))
   "⏮")
 
-(define-method (fmt (obj <sp-play-pause>) (clicked? <boolean>))
+(define-method (on-event (obj <play-pause>) (event <list>))
   (let ((status (slot-ref obj 'playback-status)))
-    (when clicked?
-      (unclick obj)
-      (run-spotify-cmd! (case status
-                          ((paused) "Play")
-                          ((playing) "Pause")))
-      (set! status
-        (case status
-          ((paused) 'playing)
-          ((playing) 'paused)))
-      (slot-set! obj 'playback-status status))
-    (case status
-      ((paused) "<span foreground=\"#DA1000\">⏵</span>")
-      ((playing) "⏸"))))
+    (run-spotify-cmd! (case status
+                        ((paused) "Play")
+                        ((playing) "Pause")))
+    (set! status
+      (case status
+        ((paused) 'playing)
+        ((playing) 'paused)))
+    (slot-set! obj 'playback-status status)
+    #f))
 
-(define-method (fmt (obj <sp-next>) (clicked? <boolean>))
-  (when clicked?
-    (unclick obj)
-    (run-spotify-cmd! "Next"))
+(define-method (update (obj <play-pause>)))
+
+(define-method (fmt (obj <play-pause>))
+  (case (slot-ref obj 'playback-status)
+    ((paused) "<span foreground=\"#DA1000\">⏵</span>")
+    ((playing) "⏸")))
+
+(define-method (on-event (obj <next>) (event <list>))
+  (run-spotify-cmd! "Next")
+  #t)
+
+(define-method (fmt (obj <next>))
   "⏭")
 
-(define-method (fmt (obj <sp-info>) (clicked? <boolean>))
+(define-method (fmt (obj <info>))
   (values
-   (if clicked?
+   (if (toggled? obj)
        (format #f "~a - ~a - ~a"
                (slot-ref obj 'artist)
                (slot-ref obj 'album)

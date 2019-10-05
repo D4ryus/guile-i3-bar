@@ -4,13 +4,13 @@
   #:use-module (guile-i3-bar misc)
   #:use-module (oop goops))
 
-(define-class <time> (<obj>))
+(define-class <time> (<toggleable> <obj>))
 
 (define-method (fetch (obj <time>))
   (slot-set! obj 'data (current-time)))
 
-(define-method (fmt (obj <time>) (clicked? <boolean>))
-  (strftime (if clicked?
+(define-method (fmt (obj <time>))
+  (strftime (if (toggled? obj)
                 "%a, %e.%m.%Y %H:%M"
                 "%H:%M")
             (localtime (slot-ref obj 'data))))

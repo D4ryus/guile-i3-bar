@@ -6,7 +6,7 @@
   #:use-module (ice-9 receive)
   #:use-module (oop goops))
 
-(define-class <mem> (<obj>)
+(define-class <mem> (<toggleable> <obj>)
   used
   mem-total
   mem-free
@@ -30,11 +30,11 @@
                             (ash (get mem-info 'mem-available) -20)))
     (list)))
 
-(define-method (fmt (obj <mem>) (clicked? <boolean>))
+(define-method (fmt (obj <mem>))
   (let ((mem-used (slot-ref obj 'used))
         (mem-total (slot-ref obj 'mem-total)))
     (values
-     (if clicked?
+     (if (toggled? obj)
          (apply format #f
                 "total: ~amb, free: ~amb, used: ~amb, cached: ~amb, active: ~amb, inactive: ~amb"
                 (map (lambda (slot) (slot-ref obj slot))
@@ -44,4 +44,4 @@
                     "<span foreground=\"#DA1000\">~4d</span>mb"
                     "~4dmb")
                 (list mem-used)))
-     #:border (if clicked? "#777777" #f))))
+     #:border (if (toggled? obj) "#777777" #f))))

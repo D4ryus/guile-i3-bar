@@ -8,9 +8,8 @@
 (define-class <cpu> (<obj>))
 
 (define-class <core> (<instance>)
-  (percent #:init-keyword #:percent)
-  (last? #:init-keyword #:last?
-         #:init-value #f))
+  percent
+  last?)
 
 (define-method (fetch (obj <cpu>))
   (read-proc-stat!))
@@ -31,15 +30,15 @@
           (reverse result)
           (loop (cdr cores)
                 (+ i 1)
-                (cons (make <core>
-                        #:obj obj
-                        #:id (string->lispified-symbol
-                              (format #f "core-~a" i))
-                        #:percent (car cores)
-                        #:last? (null? (cdr cores)))
-                      result))))))
+                (cons
+                 (update-slots (get-instance obj
+                                             (string->lispified-symbol (format #f "core-~a" i))
+                                             <core>)
+                               'percent (car cores)
+                               'last? (null? (cdr cores)))
+                 result))))))
 
-(define-method (fmt (obj <core>) (clicked? <boolean>))
+(define-method (fmt (obj <core>))
   (let ((percent (slot-ref obj 'percent)))
     (values (apply format #f
                    (if (> percent 95)
