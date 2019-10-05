@@ -8,20 +8,13 @@
   #:use-module (oop goops))
 
 (define (run-spotify-cmd! cmd)
-  (let* ((pipe (open-input-pipe
-                (string-join (list "qdbus"
-                                   "org.mpris.MediaPlayer2.spotify"
-                                   "/org/mpris/MediaPlayer2"
-                                   (string-append "org.mpris.MediaPlayer2.Player."
-                                                  cmd))))))
-    (let loop ((line (read-line pipe))
-               (result (list)))
-      (if (eof-object? line)
-          (begin
-            (close-pipe pipe)
-            (reverse result))
-          (loop (read-line pipe)
-                (cons line result))))))
+  (run-cmd!
+   (string-join
+    (list "qdbus"
+          "org.mpris.MediaPlayer2.spotify"
+          "/org/mpris/MediaPlayer2"
+          (string-append "org.mpris.MediaPlayer2.Player."
+                         cmd)))))
 
 (define (read-spotify-playback-status!)
   (let* ((output (run-spotify-cmd! "PlaybackStatus"))

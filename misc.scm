@@ -1,4 +1,6 @@
 (define-module (guile-i3-bar misc)
+  #:use-module (ice-9 popen)
+  #:use-module (ice-9 rdelim)
   #:use-module (ice-9 regex)
   #:use-module (json)
   #:use-module (srfi srfi-1)
@@ -11,6 +13,7 @@
             get
             i3-block
             match-substrings
+            run-cmd!
             string->lispified-symbol))
 
 (define (string->lispified-symbol str)
@@ -172,3 +175,14 @@
                    (cons "separator_block_width" separator-block-width))
                  (when markup
                    (cons "markup" markup))))))
+
+(define (run-cmd! cmd)
+  (let* ((pipe (open-input-pipe cmd)))
+    (let loop ((line (read-line pipe))
+               (result (list)))
+      (if (eof-object? line)
+          (begin
+            (close-pipe pipe)
+            (reverse result))
+          (loop (read-line pipe)
+                (cons line result))))))
