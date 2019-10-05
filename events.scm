@@ -4,6 +4,8 @@
   #:use-module (json)
   #:use-module (oop goops)
   #:export (clicked?
+            delete-click-event
+            make-click-event
             process-click-events))
 
 (define clicked (list))

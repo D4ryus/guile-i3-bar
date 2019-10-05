@@ -8,6 +8,7 @@
             process
             fetch
             fmt
+            unclick
             update!
             print!))
 
@@ -28,6 +29,10 @@
 
 (define-method (clicked? (obj <obj>))
   (clicked? (slot-ref obj 'name) #f))
+
+(define-method (unclick (obj <obj>))
+  (delete-click-event
+   (make-click-event (slot-ref obj 'name) #f)))
 
 (define-method (update (obj <obj>) (process? <boolean>))
   (slot-set! obj 'old-data (slot-ref obj 'data))
@@ -77,6 +82,11 @@
 (define-method (clicked? (obj <instance>))
   (clicked? (slot-ref (slot-ref obj 'obj) 'name)
             (slot-ref obj 'id)))
+
+(define-method (unclick (obj <instance>))
+  (delete-click-event
+   (make-click-event (slot-ref (slot-ref obj 'obj) 'name)
+                     (slot-ref obj 'id))))
 
 (define-method (fmt (obj <instance>) (clicked? <boolean>))
   (error "Implement fmt for" obj))
