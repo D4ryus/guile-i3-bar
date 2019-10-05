@@ -106,8 +106,8 @@
 
 (define objs
   (list (make <spotify> #:name 'spotify #:color "#6AE368")
-        (make <net>     #:name 'net     #:color "#D66563")
-        (make <disks>   #:name 'disks   #:color "#9895FA")
+        (make <net>     #:name 'net     #:color "#E82F2E")
+        (make <disks>   #:name 'disks   #:color "#0DA9FF")
         (make <mem>     #:name 'mem     #:color "#E8D900")
         (make <cpu>     #:name 'cpu     #:color "#4AFFCD")
         (make <battery> #:name 'battery #:color "#FFAAFF")
