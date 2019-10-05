@@ -7,6 +7,10 @@
   #:use-module (ice-9 regex)
   #:use-module (oop goops))
 
+;; XXX We need to wait a bit before pulling Song info, otherwise we
+;; XXX get info about the last song
+(define sleep-hack 50000)
+
 (define (run-spotify-cmd! cmd)
   (run-cmd!
    (string-join
@@ -83,7 +87,8 @@
 
 (define-method (on-event (obj <prev>) (event <list>))
   (run-spotify-cmd! "Previous")
-  #f)
+  (usleep sleep-hack)
+  #t)
 
 (define-method (fmt (obj <prev>))
   "⏮")
@@ -109,9 +114,7 @@
 
 (define-method (on-event (obj <next>) (event <list>))
   (run-spotify-cmd! "Next")
-  ;; XXX We need to wait a bit before pulling Song info, otherwise we
-  ;; XXX get info about the last song
-  (usleep 30000)
+  (usleep sleep-hack)
   #t)
 
 (define-method (fmt (obj <next>))
