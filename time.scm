@@ -7,7 +7,7 @@
 (define-class <time> (<toggleable> <obj>))
 
 (define-method (fetch (obj <time>))
-  (slot-set! obj 'data (current-time)))
+  (current-time))
 
 (define-method (fmt (obj <time>))
   (values
