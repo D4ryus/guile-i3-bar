@@ -9,6 +9,7 @@
   #:use-module (guile-i3-bar net)
   #:use-module (guile-i3-bar proc)
   #:use-module (guile-i3-bar spotify)
+  #:use-module (guile-i3-bar sound)
   #:use-module (guile-i3-bar time)
   #:use-module (ice-9 format)
   #:use-module (ice-9 pretty-print)
@@ -111,6 +112,7 @@
         (make <mem>     #:name 'mem     #:color "#E8D900")
         (make <cpu>     #:name 'cpu     #:color "#4AFFCD")
         (make <battery> #:name 'battery #:color "#FFAAFF")
+        (make <sound>   #:name 'sound   #:color "#FFFFFF")
         (make <time>    #:name 'time    #:color "#FFFFFF")))
 
 (define* (process-click-events port)
