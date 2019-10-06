@@ -13,6 +13,7 @@
             get
             i3-block
             match-substrings
+            parse-string
             run-cmd!
             string->lispified-symbol))
 
@@ -186,3 +187,21 @@
             (reverse result))
           (loop (read-line pipe)
                 (cons line result))))))
+
+(define (parse-string str pos)
+  (let ((delim (string-ref str pos))
+        (len (string-length str)))
+    (let loop ((from (+ 1 pos))
+               (result (list)))
+      (if (>= from len)
+          #f
+          (let ((end (string-index str delim from)))
+            (if (not end)
+                #f
+                (if (not (eqv? #\\ (string-ref str (- end 1))))
+                    (apply string-append
+                           (reverse (cons (substring str from end) result)))
+                    (let ((part (string-copy (substring str from end))))
+                      (string-set! part (- (string-length part) 1) delim)
+                      (loop (+ 1 end)
+                            (cons part result))))))))))
