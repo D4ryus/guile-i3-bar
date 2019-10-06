@@ -118,8 +118,6 @@
     (slot-set! obj 'playback-status status)
     #f))
 
-(define-method (update (obj <play-pause>)))
-
 (define-method (fmt (obj <play-pause>))
   (case (slot-ref obj 'playback-status)
     ((paused) "<span foreground=\"#DA1000\">⏵</span>")
