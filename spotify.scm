@@ -11,10 +11,8 @@
 (define dbus-dest-player "org.mpris.MediaPlayer2.Player")
 (define dbus-object-path "/org/mpris/MediaPlayer2")
 (define dbus-event "org.freedesktop.DBus.Properties.PropertiesChanged")
-
-;; XXX We need to wait a bit before pulling Song info, otherwise we
-;; XXX get info about the last song
-(define sleep-hack 50000)
+(define dbus-init-line "The name org.mpris.MediaPlayer2.spotify is owned by")
+(define dbus-quit-line "The name org.mpris.MediaPlayer2.spotify does not have an owner")
 
 (define (parse-metadata str)
   (let* ((delim-rgx "<('|\\['|\"|\\[\")")
@@ -60,9 +58,22 @@
                  ((playback-status) "PlaybackStatus")))))
             (else (error "Invalid spotify cmd" cmd)))))))
 
-(define-class <spotify> (<obj>))
+(define (parse-dbus-line line)
+  (let ((rgx (make-regexp
+              (format #f
+                      "^~a: ~a \\('~a', \\{'Metadata': <\\{(.*)\\}>, 'PlaybackStatus': <'(Playing|Paused)'>\\}, @as \\[\\])"
+                      dbus-object-path
+                      dbus-event
+                      dbus-dest-player))))
+    (let ((m (regexp-exec rgx line)))
+      (if (not m)
+          #f
+          (cons
+           (cons 'playback-status
+                 (string->symbol (string-downcase (match:substring m 2))))
+           (parse-metadata (match:substring m 1)))))))
 
-(define-method (fetch (obj <spotify>))
+(define (fetch-data)
   (let ((md (run-spotify-cmd! 'metadata))
         (ps (run-spotify-cmd! 'playback-status)))
     (and (not (null? md))
@@ -73,6 +84,47 @@
                 p-ps
                 (cons p-ps
                       p-md))))))
+
+(define (process-spotify! obj)
+  (let* ((pipe (open-input-pipe
+                (string-join (list "gdbus" "monitor" "--session"
+                                   "--dest" dbus-dest-spotify
+                                   "--object-path" dbus-object-path))))
+         (update (lambda (data)
+                   (slot-set! obj 'data data)
+                   (slot-set! obj 'instances (process obj 0))
+                   (invalidate-cache obj)
+                   (raise SIGUSR2))))
+    (let loop ((line (read-line pipe))
+               (last-line #f))
+      (cond
+       ((eof-object? line)
+        (begin
+          (close-pipe pipe)
+          (sleep 1)
+          (update #f)
+          (process-spotify! obj)))
+       ((equal? dbus-quit-line line)
+        (update #f))
+       ((string-prefix? dbus-init-line line)
+        (update (fetch-data)))
+       ((not (equal? line last-line))
+        (update (parse-dbus-line line))))
+      (loop (read-line pipe)
+            line))))
+
+(define-class <spotify> (<obj>)
+  (started? #:init-value #f))
+
+(define-method (fetch (obj <spotify>))
+  (if (slot-ref obj 'started?)
+      (slot-ref obj 'data)
+      (begin
+        (slot-set! obj 'started? #t)
+        (call-with-new-thread
+         (lambda ()
+           (process-spotify! obj)))
+        #f)))
 
 (define-class <info> (<toggleable> <instance>)
   artist
@@ -100,8 +152,7 @@
 
 (define-method (on-event (obj <prev>) (event <list>))
   (run-spotify-cmd! 'previous)
-  (usleep sleep-hack)
-  #t)
+  #f)
 
 (define-method (fmt (obj <prev>))
   "⏮")
@@ -125,8 +176,7 @@
 
 (define-method (on-event (obj <next>) (event <list>))
   (run-spotify-cmd! 'next)
-  (usleep sleep-hack)
-  #t)
+  #f)
 
 (define-method (fmt (obj <next>))
   "⏭")
