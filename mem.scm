@@ -7,12 +7,12 @@
   #:use-module (oop goops))
 
 (define-class <mem> (<toggleable> <obj>)
-  used
-  mem-total
-  mem-free
-  cached
-  active
-  inactive)
+  (used #:init-value 0)
+  (mem-total #:init-value 1)
+  (mem-free #:init-value 0)
+  (cached #:init-value 0)
+  (active #:init-value 0)
+  (inactive #:init-value 0))
 
 (define-method (fetch (obj <mem>))
   (read-proc-meminfo!))
