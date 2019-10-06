@@ -9,6 +9,7 @@
             fetch
             fmt
             get-instance
+            invalidate-cache
             on-event
             print!
             process
@@ -33,7 +34,9 @@
         #:init-keyword #:name)
   (color #:init-form (error "Color required")
          #:init-keyword #:color)
-  (instances #:init-value (list)))
+  (instances #:init-value (list))
+  (fmt-cache #:init-value #f)
+  (cache-valid? #:init-value #f))
 
 (define-generic fetch)
 (define-generic process)
@@ -50,8 +53,12 @@
       (set! diff 1))
     (slot-set! obj 'time current)
     (slot-set! obj 'diff diff)
+    (invalidate-cache obj)
     (when process?
       (slot-set! obj 'instances (process obj diff)))))
+
+(define-method (invalidate-cache (obj <obj>))
+  (slot-set! obj 'cache-valid? #f))
 
 (define-method (process (obj <obj>) (diff <number>))
   (list))
@@ -72,12 +79,16 @@
                                #:color (slot-ref obj 'color)
                                #:instance (and instance (slot-ref instance 'id)))
                          args)))))))
-    (let ((list (delete #f
-                        (append (list (to-i3-obj))
-                                (map to-i3-obj (slot-ref obj 'instances))))))
-      (if (null? list)
-          #f
-          (string-join list ",")))))
+    (if (slot-ref obj 'cache-valid?)
+        (slot-ref obj 'fmt-cache)
+        (let* ((list (delete #f
+                             (append
+                              (list (to-i3-obj))
+                              (map to-i3-obj (slot-ref obj 'instances)))))
+               (cache (if (null? list) #f (string-join list ","))))
+          (slot-set! obj 'fmt-cache cache)
+          (slot-set! obj 'cache-valid? #t)
+          cache))))
 
 (define-method (on-event (obj <obj>) (event <list>))
   #f)
