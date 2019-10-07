@@ -14,7 +14,7 @@
                    'received-fifo 'received-frame 'received-compressed 'received-multicast
                    'transmitted-bytes 'transmitted-packets 'transmitted-errors 'transmitted-drop
                    'transmitted-fifo 'transmitted-colls 'transmitted-carrier 'transmitted-compressed))
-         (device-rgx (make-regexp (format #f "^ *([a-zA-Z0-9]+):~{~a~}$"
+         (device-rgx (make-regexp (format #f "^ *([a-zA-Z0-9-]+):~{~a~}$"
                                           (map (lambda (_) (identity " +([0-9]+)"))
                                                mapping)))))
     (lambda ()
