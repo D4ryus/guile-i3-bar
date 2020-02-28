@@ -4,8 +4,10 @@
   #:use-module (ice-9 regex)
   #:use-module (json)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-18)
   #:export (accumulate
             accumulate-alist
+            call-with-mutex
             current-tick
             difference
             format-bar
@@ -205,3 +207,10 @@
                       (string-set! part (- (string-length part) 1) delim)
                       (loop (+ 1 end)
                             (cons part result))))))))))
+
+
+(define (call-with-mutex mutex thunk)
+  (dynamic-wind
+    (lambda () (mutex-lock! mutex))
+    thunk
+    (lambda () (mutex-unlock! mutex))))

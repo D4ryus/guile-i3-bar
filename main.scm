@@ -8,17 +8,17 @@
   #:use-module (guile-i3-bar misc)
   #:use-module (guile-i3-bar net)
   #:use-module (guile-i3-bar proc)
-  #:use-module (guile-i3-bar spotify)
   #:use-module (guile-i3-bar sound)
+  #:use-module (guile-i3-bar spotify)
   #:use-module (guile-i3-bar time)
   #:use-module (ice-9 format)
   #:use-module (ice-9 pretty-print)
   #:use-module (ice-9 rdelim)
-  #:use-module (ice-9 threads)
   #:use-module (json)
   #:use-module (oop goops)
   #:use-module (oop goops describe)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-18) ;; threads
   #:use-module (system repl server))
 
 (define stdout (current-output-port))
@@ -30,16 +30,18 @@
 (define events-mutex (make-mutex))
 
 (define (push-event event)
-  (with-mutex events-mutex
-    (set! events (cons event events))))
+  (call-with-mutex events-mutex
+    (lambda ()
+      (set! events (cons event events)))))
 
 (define (pop-event)
-  (with-mutex events-mutex
-    (if (null? events)
-        #f
-        (let ((event (car events)))
-          (set! events (cdr events))
-          event))))
+  (call-with-mutex events-mutex
+    (lambda ()
+      (if (null? events)
+          #f
+          (let ((event (car events)))
+            (set! events (cdr events))
+            event)))))
 
 (define (handle-events)
   (let loop ((event (pop-event)))
@@ -131,16 +133,18 @@
   (sigaction SIGUSR1 signal-handler)
   (sigaction SIGCONT signal-handler)
   (sigaction SIGUSR2 signal-handler)
-  (call-with-new-thread
-   (lambda ()
-     (let loop ()
-       (catch #t
-         (lambda () (process-click-events stdin))
-         (lambda (key . parameters)
-           (set! main-loop-error (cons key parameters))
-           ;; Sleep so that one can attach via geiser and check what
-           ;; error was thrown
-           (sleep 999)
-           (loop))))))
+  (thread-start!
+   (make-thread
+    (lambda ()
+      (let loop ()
+        (catch #t
+          (lambda () (process-click-events stdin))
+          (lambda (key . parameters)
+            (set! main-loop-error (cons key parameters))
+            ;; Sleep so that one can attach via geiser and check what
+            ;; error was thrown
+            (sleep 999)
+            (loop)))))
+    'input-events-thread))
 
   (init #:spawn-server? #t #:click-events #t))

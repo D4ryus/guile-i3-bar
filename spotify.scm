@@ -5,7 +5,8 @@
   #:use-module (ice-9 popen)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 regex)
-  #:use-module (oop goops))
+  #:use-module (oop goops)
+  #:use-module (srfi srfi-18)) ;; threads
 
 (define dbus-dest-spotify "org.mpris.MediaPlayer2.spotify")
 (define dbus-dest-player "org.mpris.MediaPlayer2.Player")
@@ -121,9 +122,10 @@
       (slot-ref obj 'data)
       (begin
         (slot-set! obj 'started? #t)
-        (call-with-new-thread
-         (lambda ()
-           (process-spotify! obj)))
+        (thread-start!
+         (make-thread (lambda ()
+                        (process-spotify! obj))
+                      'spotify))
         #f)))
 
 (define-class <info> (<toggleable> <instance>)
