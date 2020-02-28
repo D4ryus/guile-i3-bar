@@ -95,7 +95,7 @@
                    (slot-set! obj 'data data)
                    (slot-set! obj 'instances (process obj 0))
                    (invalidate-cache obj)
-                   (raise SIGUSR2))))
+                   (kill (getpid) SIGUSR2))))
     (let loop ((line (read-line pipe))
                (last-line #f))
       (cond

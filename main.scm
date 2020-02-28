@@ -126,7 +126,7 @@
   (when (equal? (read-char port) #\[)
     (read-line port))
   (push-event (json-string->scm (read-line port)))
-  (raise SIGUSR2)
+  (kill (getpid) SIGUSR2)
   (process-click-events port))
 
 (define (main)
