@@ -71,11 +71,12 @@
     (when (> sleep 0)
       (when event-pending?
         (handle-events)
-        (print! stdout objs)
+        (when running
+          (print! stdout objs))
         (set! event-pending? #f))
       (loop (usleep sleep))))
+  (update! objs)
   (when running
-    (update! objs)
     (print! stdout objs))
   (main-loop))
 
