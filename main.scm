@@ -106,9 +106,9 @@
 
 (define (signal-handler signal)
   (cond
-    ((= signal SIGUSR1) (set! running #f))
-    ((= signal SIGCONT) (set! running #t))
-    ((= signal SIGUSR2) (set! event-pending? #t))))
+   ((= signal SIGUSR1) (set! running #f))
+   ((= signal SIGCONT) (set! running #t))
+   ((= signal SIGUSR2) (set! event-pending? #t))))
 
 (define objs
   (list (make <spotify> #:name 'spotify #:color "#6AE368")
