@@ -93,12 +93,12 @@
              stdout)
   (format stdout "~%[[]~%")
   (update! objs #f)
-
-  (main-loop)
   (catch #t
     (lambda () (main-loop))
     (lambda (key . parameters)
       (set! main-loop-error (cons key parameters))
+      (format (current-error-port) "Error: ~a~%" (cons key parameters))
+      (force-output (current-error-port))
       ;; Sleep so that one can attach via geiser and check what
       ;; error was thrown
       (sleep 999)))
@@ -143,10 +143,12 @@
           (lambda () (process-click-events stdin))
           (lambda (key . parameters)
             (set! main-loop-error (cons key parameters))
+            (format (current-error-port) "Error event loop: ~a~%"
+                    (cons key parameters))
+            (force-output (current-error-port))
             ;; Sleep so that one can attach via geiser and check what
             ;; error was thrown
             (sleep 999)
             (loop)))))
     'input-events-thread))
-
   (init #:spawn-server? #t #:click-events #t))
