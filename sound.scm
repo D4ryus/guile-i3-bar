@@ -52,7 +52,7 @@
 
 (define-method (fmt (obj <mute>))
   (if (slot-ref obj 'muted?)
-      "<span foreground=\"#DA1000\">🔇</span>"
+      (colorize "#DA1000" "🔇")
       "🔊"))
 
 (define-method (on-event (obj <mute>) (event <list>))
@@ -61,7 +61,8 @@
 
 (define-method (fmt (obj <volume>))
   (let ((vol (slot-ref obj 'volume)))
-    (apply format #f "~a<span foreground=\"#777777\">~a</span>"
+    (apply (lambda (on off)
+             (string-append on (colorize "#777777" off)))
            (cond
             ((=  vol 100) '("━━━━━━━━━━" ""))
             ((>= vol  90) '("━━━━━━━━━" "━"))
@@ -73,7 +74,7 @@
             ((>= vol  30) '("━━━" "━━━━━━━"))
             ((>= vol  20) '("━━" "━━━━━━━━"))
             ((>= vol  10) '("━" "━━━━━━━━━"))
-            (else        '("" "━━━━━━━━━━"))))))
+            (else         '("" "━━━━━━━━━━"))))))
 
 (define-method (on-event (obj <volume>) (event <list>))
   (case (get event "button")

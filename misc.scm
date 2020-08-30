@@ -9,6 +9,7 @@
             accumulate-alist
             call-with-mutex
             current-tick
+            colorize
             difference
             format-bar
             format-size
@@ -107,28 +108,31 @@
     (floor (+ (* sec 1000)
               (/ micro-sec 1000)))))
 
+(define (colorize color text)
+  (format #f "<span foreground=\"~a\">~a</span>"
+          color text))
+
 (define format-size
-  (let ((xb (ash 1 53)) ;; 8xb
-        (tb (ash 1 43)) ;; 8tb
-        (gb (ash 1 33)) ;; 8gb
-        (mb (ash 1 23)) ;; 8mb
-        (kb (ash 1 13)));; 8kb
+  (let ((xb (ash 1 53))  ;; 8xb
+        (tb (ash 1 43))  ;; 8tb
+        (gb (ash 1 33))  ;; 8gb
+        (mb (ash 1 23))  ;; 8mb
+        (kb (ash 1 13))) ;; 8kb
     (lambda (size)
-      (format #f "<span foreground=\"#FFFFFF\">~a</span>"
-              (cond
-               ((> size xb) (format #f "~4dpb" (ash size -50)))
-               ((> size tb) (format #f "~4dtb" (ash size -40)))
-               ((> size gb) (format #f "~4dgb" (ash size -30)))
-               ((> size mb) (format #f "~4dmb" (ash size -20)))
-               ((> size kb) (format #f "~4dkb" (ash size -10)))
-               (#t          (format #f "~4db " size)))))))
+      (colorize "#FFFFFF"
+                (cond
+                 ((> size xb) (format #f "~4dpb" (ash size -50)))
+                 ((> size tb) (format #f "~4dtb" (ash size -40)))
+                 ((> size gb) (format #f "~4dgb" (ash size -30)))
+                 ((> size mb) (format #f "~4dmb" (ash size -20)))
+                 ((> size kb) (format #f "~4dkb" (ash size -10)))
+                 (#t          (format #f "~4db " size)))))))
 
 (define (format-bar value max)
   (let ((percent (if (= max 0)
                      0
                      (* (/ value max) 100))))
-    (apply format #f
-           "<span foreground=\"~a\">~a</span>"
+    (apply colorize
            (cond
             ((> percent 90) (list "#FF0000" "█"))
             ((> percent 80) (list "#FFAA00" "▇"))

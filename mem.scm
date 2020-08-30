@@ -39,9 +39,8 @@
                 "total: ~amb, free: ~amb, used: ~amb, cached: ~amb, active: ~amb, inactive: ~amb"
                 (map (lambda (slot) (slot-ref obj slot))
                      '(mem-total mem-free used cached active inactive)))
-         (apply format #f
-                (if (> (/ mem-used mem-total) 0.9)
-                    "<span foreground=\"#DA1000\">~4d</span>mb"
-                    "~4dmb")
-                (list mem-used)))
+         (colorize (if (> (/ mem-used mem-total) 0.9)
+                       "#DA1000"
+                       (slot-ref obj 'color))
+                   (format #f "~4dmb" mem-used)))
      #:border (if (toggled? obj) (slot-ref obj 'color) #f))))

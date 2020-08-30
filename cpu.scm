@@ -40,10 +40,10 @@
 
 (define-method (fmt (obj <core>))
   (let ((percent (slot-ref obj 'percent)))
-    (values (apply format #f
+    (values (apply colorize
                    (if (> percent 95)
-                       "<span foreground=\"#DA1000\">~a</span>"
-                       "~a")
+                       "#DA1000"
+                       (slot-ref (slot-ref obj 'obj) 'color))
                    (list (cond
                           ((> percent 90) "█")
                           ((> percent 80) "▇")

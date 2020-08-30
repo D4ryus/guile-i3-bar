@@ -25,11 +25,10 @@
   (let ((seconds (slot-ref obj 'seconds)))
     (values
      (if (eq? #:done (slot-ref obj 'state))
-         (format #f "<span foreground=\"~a\">~a</span>"
-                 (if (= 0 (logand #x01 (car (current-time))))
-                     "#FF0000"
-                     "#00FF00")
-                 "DONE!")
+         (colorize (if (= 0 (logand #x01 (car (current-time))))
+                       "#FF0000"
+                       "#00FF00")
+                   "DONE!")
          (format #f "~2,'0d:~2,'0d"
                  (floor/ seconds 60)
                  (modulo seconds 60))))))

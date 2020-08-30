@@ -173,7 +173,7 @@
 
 (define-method (fmt (obj <play-pause>))
   (case (slot-ref obj 'playback-status)
-    ((paused) "<span foreground=\"#DA1000\"></span>")
+    ((paused) (colorize "#DA1000" ""))
     ((playing) "")))
 
 (define-method (on-event (obj <next>) (event <list>))
