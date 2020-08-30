@@ -157,7 +157,7 @@
   #f)
 
 (define-method (fmt (obj <prev>))
-  "⏮")
+  "")
 
 (define-method (on-event (obj <play-pause>) (event <list>))
   (let ((status (slot-ref obj 'playback-status)))
@@ -173,15 +173,15 @@
 
 (define-method (fmt (obj <play-pause>))
   (case (slot-ref obj 'playback-status)
-    ((paused) "<span foreground=\"#DA1000\">⏵</span>")
-    ((playing) "⏸")))
+    ((paused) "<span foreground=\"#DA1000\"></span>")
+    ((playing) "")))
 
 (define-method (on-event (obj <next>) (event <list>))
   (run-spotify-cmd! 'next)
   #f)
 
 (define-method (fmt (obj <next>))
-  "⏭")
+  "")
 
 (define-method (fmt (obj <info>))
   (values
