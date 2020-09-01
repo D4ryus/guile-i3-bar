@@ -41,16 +41,18 @@
 (define-method (fmt (obj <core>))
   (let ((percent (slot-ref obj 'percent)))
     (values (apply colorize
-                   (if (> percent 95)
-                       "#DA1000"
-                       (slot-ref (slot-ref obj 'obj) 'color))
+                   (cond
+                    ((> percent 90) "#DA1000")
+                    ((> percent 66) "#D0D000")
+                    ((< percent 10) "#00D000")
+                    (else (slot-ref (slot-ref obj 'obj) 'color)))
                    (list (cond
-                          ((> percent 90) "█")
-                          ((> percent 80) "▇")
-                          ((> percent 70) "▆")
-                          ((> percent 60) "▅")
-                          ((> percent 50) "▄")
-                          ((> percent 40) "▃")
-                          ((> percent 30) "▂")
+                          ((> percent 80) "█")
+                          ((> percent 70) "▇")
+                          ((> percent 60) "▆")
+                          ((> percent 50) "▅")
+                          ((> percent 40) "▄")
+                          ((> percent 30) "▃")
+                          ((> percent 20) "▂")
                           (else "▁"))))
             #:separator-block-width (if (slot-ref obj 'last?) #f 1))))
