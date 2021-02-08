@@ -68,14 +68,14 @@
 (define running #t)
 
 (define (main-loop)
-  (let loop ((sleep 1000000))
-    (when (> sleep 0)
+  (let loop ((sleep-left 1000000)) ;; 1 second
+    (when (> sleep-left 0)
       (when event-pending?
         (handle-events)
         (when running
           (print! stdout objs))
         (set! event-pending? #f))
-      (loop (usleep sleep))))
+      (loop (- sleep-left (usleep sleep-left)))))
   (update! objs)
   (when running
     (print! stdout objs))
