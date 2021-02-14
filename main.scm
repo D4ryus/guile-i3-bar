@@ -68,14 +68,19 @@
 (define running #t)
 
 (define (main-loop)
-  (let loop ((sleep-left 1000000)) ;; 1 second
-    (when (> sleep-left 0)
-      (when event-pending?
-        (handle-events)
-        (when running
-          (print! stdout objs))
-        (set! event-pending? #f))
-      (loop (- sleep-left (usleep sleep-left)))))
+  (define (time-in-microseconds)
+    (let ((time (gettimeofday)))
+      (+ (* (car time) 1000000) (cdr time))))
+  (let ((timeout (+ (time-in-microseconds) 1000000)))
+    (let loop ((time-left (- timeout (time-in-microseconds)))) ;; 1 second
+      (when (> time-left 0)
+        (when event-pending?
+          (handle-events)
+          (when running
+            (print! stdout objs))
+          (set! event-pending? #f))
+        (usleep time-left)
+        (loop (- timeout (time-in-microseconds))))))
   (update! objs)
   (when running
     (print! stdout objs))
