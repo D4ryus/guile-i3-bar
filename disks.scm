@@ -5,9 +5,12 @@
   #:use-module (guile-i3-bar proc)
   #:use-module (oop goops))
 
-(define-class <disks> (<obj>))
+(define-class <disks> (<obj>)
+  (map #:init-value '()
+       #:init-keyword #:map))
 
 (define-class <disk> (<toggleable> <instance>)
+  name
   read
   written)
 
@@ -24,8 +27,10 @@
           (reverse result)
           (loop (cdr disks)
                 (let* ((disk (car disks))
+                       (id (car disk))
                        (disk-total (get (cdr disk) 'total)))
                   (cons (update-slots (get-instance obj (car disk) <disk>)
+                                      'name (or (assoc-ref (slot-ref obj 'map) id) id)
                                       'read (round (/ (* 512 (get disk-total 'sectors-read))
                                                       diff))
                                       'written (round (/ (* 512 (get disk-total 'sectors-written))
@@ -38,7 +43,7 @@
         (written (slot-ref obj 'written)))
     (values
      (format #f "~a ~a~a~a~a"
-             (slot-ref obj 'id)
+             (slot-ref obj 'name)
              (if (toggled? obj) (string-append (format-size read) " ") "")
              (format-bar read max)
              (format-bar written max)
